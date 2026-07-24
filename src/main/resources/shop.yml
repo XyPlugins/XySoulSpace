@@ -1,0 +1,25 @@
+# 灵魂商店配置
+# costs 支持两种键：
+# - 材质名，例如 DIAMOND
+# - 物品显示名去色后的文本，例如 十年斗环(孤竹)
+
+shops:
+  默认:
+    size: 54
+    items:
+      diamond:
+        name: "&b钻石"
+        material: DIAMOND
+        amount: 1
+        lore:
+          - "&7用灵魂空间材料兑换"
+        slot: 10
+        costs:
+          LOG: 10
+      ring_sample:
+        name: "&f十年斗环(孤竹)❂"
+        material: EMERALD
+        amount: 1
+        slot: 12
+        costs:
+          DIAMOND: 1

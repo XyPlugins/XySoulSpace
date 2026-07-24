@@ -1,0 +1,30 @@
+name: XySoulSpace
+version: '1.1'
+main: org.xyplugin.xysoulspace.XySoulSpacePlugin
+api-version: '1.12'
+author: XyPlugin
+description: Xy series soul storage, local item bank, pickup, decomposition and shop bridge.
+softdepend: [XyCore, MythicMobs, Vault, PlayerPoints]
+
+commands:
+  xyss:
+    description: XySoulSpace main command
+    usage: /xyss <open|store|pickup|globalpickup|shop|reloadshop|saveitem|giveitem|admin|clear|reload|help>
+    aliases: [xysoulspace, soulspace, soul]
+
+permissions:
+  xysoulspace.use:
+    description: Allows players to use soul space.
+    default: false
+  xysoulspace.admin:
+    description: Allows administrators to manage soul spaces and item library.
+    default: op
+  xysoulspace.reload:
+    description: Allows reloading XySoulSpace.
+    default: op
+  xysoulspace.shop.use:
+    description: Allows using soul shops.
+    default: true
+  xysoulspace.shop.admin:
+    description: Allows editing and reloading soul shops.
+    default: op

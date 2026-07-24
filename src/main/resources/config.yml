@@ -1,0 +1,82 @@
+# ============================================================
+# XySoulSpace 1.1
+# Paper/Spigot 1.12.2
+#
+# 当前版本默认使用本地 YML 存储，后续可切换到 XyCore/SQL 存储。
+# ============================================================
+
+storage:
+  # 当前可用: yaml
+  # 预留: xcore, mysql
+  type: yaml
+  autosave-interval-ticks: 1200
+  save-on-deposit: false
+
+integrations:
+  xcore:
+    enabled: true
+  mythicmobs:
+    enabled: true
+    debug: false
+    # 兼容旧 SoulSpace 的怪物配置字段：
+    # ZombieExample:
+    #   ssdrops:
+    #     - "物品库ID 1 100%"
+    #     - "MythicMobsItemId 2 0.25"
+    pickup-message: "&a灵魂空间拾取了 &6%amount% &a个 &6%item%"
+  vault:
+    enabled: true
+  playerpoints:
+    enabled: true
+
+pickup:
+  global-enabled: true
+  default-player-enabled: true
+  range: 6.0
+  scan-interval-ticks: 10
+  message-enabled: true
+  message: "&a灵魂空间拾取了 &6%amount% &a个 &6%item%"
+
+gui:
+  title: "&a灵魂空间"
+  admin-title: "&6[管理] %player% 的灵魂空间"
+  size: 54
+  items-per-page: 45
+  previous-page-material: FEATHER
+  next-page-material: FEATHER
+  store-button-material: EMERALD
+  decompose-button-material: BLAZE_POWDER
+  close-button-material: BARRIER
+
+quick-decompose:
+  enabled: true
+  items:
+    - lore: "分解可获得中阶斗兽晶核"
+      commands:
+        - "mm i give %player% 中阶斗兽晶核 1"
+    - lore:
+        - "十年斗环"
+        - "百年斗环"
+        - "千年斗环"
+      commands:
+        - "mm i give %player% 中阶斗兽晶核 1"
+        - "points give %player% 200"
+
+messages:
+  prefix: "&7[&bXySoulSpace&7]&r "
+  no-permission: "&c你没有权限执行此操作。"
+  only-player: "&c该命令仅玩家可用。"
+  reload: "&a配置、商店和物品库已重载。"
+  stored: "&a已存入 &f%amount% &a个 &r%item% &a到灵魂空间。"
+  withdrawn: "&a已取出 &f%amount% &a个 &r%item%&a。"
+  inventory-full: "&c背包空间不足。"
+  empty: "&7灵魂空间暂无物品。"
+  pickup-on: "&a个人自动拾取已开启。"
+  pickup-off: "&c个人自动拾取已关闭。"
+  global-pickup-on: "&a全局自动拾取已开启。"
+  global-pickup-off: "&c全局自动拾取已关闭。"
+  player-not-found: "&c玩家不在线或不存在。"
+  storage-cleared: "&a已清空 %player% 的灵魂空间。"
+  item-library-saved: "&a已保存手中物品为 &e%id%&a。"
+  item-library-missing: "&c物品库中不存在 &e%id%&c。"
+  item-library-given: "&a已向 %player% 的灵魂空间发放 &f%amount% &a个 &e%id%&a。"
