@@ -179,7 +179,7 @@ public final class XySoulSpaceCommand implements CommandExecutor {
     }
 
     private void help(CommandSender sender) {
-        sender.sendMessage(Text.color("&6=== XySoulSpace 1.1 ==="));
+        sender.sendMessage(Text.color("&6=== XySoulSpace 1.1.1 ==="));
         sender.sendMessage(Text.color("&e/xyss open &7打开灵魂空间"));
         sender.sendMessage(Text.color("&e/xyss store &7存入手中物品"));
         sender.sendMessage(Text.color("&e/xyss pickup <on|off> &7个人自动拾取"));

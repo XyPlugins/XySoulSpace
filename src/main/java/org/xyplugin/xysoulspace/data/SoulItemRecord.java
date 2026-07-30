@@ -24,7 +24,8 @@ public final class SoulItemRecord {
     }
 
     public void add(long delta) {
-        amount = Math.max(0L, amount + Math.max(0L, delta));
+        if (delta <= 0L) return;
+        amount = Long.MAX_VALUE - amount < delta ? Long.MAX_VALUE : amount + delta;
     }
 
     public long remove(long delta) {

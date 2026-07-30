@@ -1,10 +1,10 @@
-# XySoulSpace 1.1
+# XySoulSpace 1.1.1
 
 XySoulSpace 是 XY 系列的灵魂仓库插件，面向 `Paper/Spigot 1.12.2` RPG 服务器。
 
 它由旧版 SoulSpace 重构而来，统一改为 `org.xyplugin.xysoulspace` 包名和 `/xyss` 指令入口，并为后续 `XyForge`、强化、兑换、活动等 XY 系列插件预留 API 与事件。
 
-当前 1.1 版本默认使用本地 YML 存储，不要求 XyCore 开启 SQL 数据库。
+当前 1.1.1 版本默认使用本地 YML 存储，不要求 XyCore 开启 SQL 数据库。XyForgeCrafting读取材料时需要服务器同时安装XyCore 0.3.10或更高兼容版本。
 
 ## 核心功能
 
@@ -20,7 +20,7 @@ XySoulSpace 是 XY 系列的灵魂仓库插件，面向 `Paper/Spigot 1.12.2` RP
 
 ## 安装
 
-1. 将 `XySoulSpace-1.1.jar` 放入服务器 `plugins` 文件夹。
+1. 将 `XySoulSpace-1.1.1.jar` 放入服务器 `plugins` 文件夹。
 2. 重启服务器生成 `plugins/XySoulSpace/config.yml` 和 `shop.yml`。
 3. 给玩家发放权限：
 
@@ -196,6 +196,26 @@ api.getAmountByCostKey(player.getUniqueId(), "DIAMOND");
 api.removeByCostKey(player.getUniqueId(), "DIAMOND", 10);
 ```
 
+`getAmountByCostKey` 与 `removeByCostKey` 是给旧商店配置保留的材质/去色名称兼容接口。新锻造、强化和兑换功能必须使用完整物品ID接口：
+
+```java
+Map<String, Long> requirements = new LinkedHashMap<>();
+requirements.put("mythicmobs:ForgingCrystal", 1L);
+requirements.put("xyitems:forge_crystal", 8L);
+requirements.put("minecraft:IRON_INGOT", 16L);
+
+long owned = api.getAmountByItemId(player.getUniqueId(), "xyitems:forge_crystal");
+boolean enough = api.hasItems(player.getUniqueId(), requirements);
+Optional<SoulSpaceWithdrawal> receipt = api.withdrawItems(player.getUniqueId(), requirements);
+
+// 中途失败时完整返还；正常锻造失败可按配方比例返还。
+receipt.ifPresent(value -> api.refund(player.getUniqueId(), value, 100));
+```
+
+完整ID匹配统一调用XyCore 0.3.10的物品库规则，不读取显示名称或Lore。`withdrawItems` 会先为全部材料建立扣除计划：只要任一材料不足，返回空结果且仓库内容完全不变；成功时返回包含实际物品模板和数量的退款凭据。
+
+退款百分比使用向下取整。例如只扣除了1个物品而退款比例为50%，该部分返还0个，避免凭空增加物品。
+
 也可以监听：
 
 ```java
@@ -205,6 +225,14 @@ XySoulSpaceItemDepositEvent
 后续锻造、强化、兑换插件建议优先通过 API 消耗灵魂空间材料，避免直接读写 YML。
 
 ## 版本记录
+
+### 1.1.1
+
+- 新增按完整 `provider:item` ID统计材料的 `getAmountByItemId`。
+- 新增批量 `hasItems` 与原子 `withdrawItems`，材料不足时不再发生部分扣除。
+- 新增 `SoulSpaceWithdrawal`精确凭据与百分比退款接口。
+- XyForgeCrafting默认先统计和扣除灵魂仓库，不足部分再读取玩家背包。
+- 新接口统一使用XyCore匹配规则；旧 `CostKey` 接口只为已有商店流程保留。
 
 ### 1.1
 
@@ -227,5 +255,5 @@ gradlew.bat clean build
 输出：
 
 ```text
-build/libs/XySoulSpace-1.1.jar
+build/libs/XySoulSpace-1.1.1.jar
 ```

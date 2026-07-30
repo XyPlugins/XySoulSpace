@@ -34,14 +34,14 @@ public final class XySoulSpacePlugin extends JavaPlugin {
         saveDefaultConfig();
         saveShopConfig();
 
-        service = new SoulSpaceService(this);
+        xyCoreBridge = new XyCoreBridge(this);
+        xyCoreBridge.refresh();
+        service = new SoulSpaceService(this, xyCoreBridge);
         gui = new SoulSpaceGui(this, service);
         service.setGui(gui);
         decomposeService = new DecomposeService(this, service);
         itemLibrary = new ItemLibrary(this);
         soulShop = new SoulShop(this, service);
-        xyCoreBridge = new XyCoreBridge(this);
-        xyCoreBridge.refresh();
         mythicMobsBridge = new MythicMobsBridge(this);
         mythicMobsBridge.registerIfAvailable();
 

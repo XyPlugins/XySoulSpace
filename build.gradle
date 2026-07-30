@@ -3,7 +3,7 @@ plugins {
 }
 
 group = 'org.xyplugin'
-version = '1.1'
+version = '1.1.1'
 
 java {
     sourceCompatibility = JavaVersion.VERSION_1_8
@@ -12,6 +12,8 @@ java {
 
 dependencies {
     compileOnly 'org.spigotmc:spigot-api:1.12.2-R0.1-SNAPSHOT'
+    testImplementation 'junit:junit:4.13.2'
+    testImplementation 'org.spigotmc:spigot-api:1.12.2-R0.1-SNAPSHOT'
 }
 
 tasks.withType(JavaCompile) {
