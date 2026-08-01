@@ -1,5 +1,5 @@
 # ============================================================
-# XySoulSpace 1.1.1
+# XySoulSpace 1.1.2
 # Paper/Spigot 1.12.2
 #
 # 当前版本默认使用本地 YML 存储，后续可切换到 XyCore/SQL 存储。
@@ -63,6 +63,7 @@ quick-decompose:
         - "points give %player% 200"
 
 messages:
+  # 独立运行时使用本前缀；检测到 XyCore 时，玩家聊天提示优先使用 XyCore config.yml -> messages.prefix。
   prefix: "&7[&bXySoulSpace&7]&r "
   no-permission: "&c你没有权限执行此操作。"
   only-player: "&c该命令仅玩家可用。"

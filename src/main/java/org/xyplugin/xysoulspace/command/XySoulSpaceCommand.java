@@ -58,7 +58,7 @@ public final class XySoulSpaceCommand implements CommandExecutor {
             case "saveitem":
                 if (!has(player, "xysoulspace.admin")) return true;
                 if (args.length < 2) {
-                    player.sendMessage("/xyss saveitem <id>");
+                    Text.sendRaw(player, plugin.getConfig(), "&c用法: /xyss saveitem <id>");
                     return true;
                 }
                 plugin.getItemLibrary().saveItem(player, args[1]);
@@ -93,7 +93,7 @@ public final class XySoulSpaceCommand implements CommandExecutor {
             return true;
         }
         if (args.length < 4) {
-            sender.sendMessage("/xyss giveitem <id> <player> <amount>");
+            Text.sendRaw(sender, plugin.getConfig(), "&c用法: /xyss giveitem <id> <player> <amount>");
             return true;
         }
         Player target = Bukkit.getPlayer(args[2]);
@@ -131,7 +131,7 @@ public final class XySoulSpaceCommand implements CommandExecutor {
     private void pickup(Player player, String[] args) {
         SoulStorage storage = service.getStorage(player.getUniqueId());
         if (args.length < 2) {
-            player.sendMessage(Text.color("&7个人自动拾取: " + (storage.isPickupEnabled() ? "&a开启" : "&c关闭")));
+            Text.sendRaw(player, plugin.getConfig(), "&7个人自动拾取: " + (storage.isPickupEnabled() ? "&a开启" : "&c关闭"));
             return;
         }
         boolean enabled = args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("true");
@@ -142,7 +142,7 @@ public final class XySoulSpaceCommand implements CommandExecutor {
 
     private void adminOpen(Player player, String[] args) {
         if (args.length < 2) {
-            player.sendMessage("/xyss admin <player>");
+            Text.sendRaw(player, plugin.getConfig(), "&c用法: /xyss admin <player>");
             return;
         }
         Player target = Bukkit.getPlayer(args[1]);
@@ -179,17 +179,17 @@ public final class XySoulSpaceCommand implements CommandExecutor {
     }
 
     private void help(CommandSender sender) {
-        sender.sendMessage(Text.color("&6=== XySoulSpace 1.1.1 ==="));
-        sender.sendMessage(Text.color("&e/xyss open &7打开灵魂空间"));
-        sender.sendMessage(Text.color("&e/xyss store &7存入手中物品"));
-        sender.sendMessage(Text.color("&e/xyss pickup <on|off> &7个人自动拾取"));
-        sender.sendMessage(Text.color("&e/xyss shop [商店名] &7打开灵魂商店"));
+        Text.sendRaw(sender, plugin.getConfig(), "&6=== XySoulSpace " + plugin.getDescription().getVersion() + " ===");
+        Text.sendRaw(sender, plugin.getConfig(), "&e/xyss open &7打开灵魂空间");
+        Text.sendRaw(sender, plugin.getConfig(), "&e/xyss store &7存入手中物品");
+        Text.sendRaw(sender, plugin.getConfig(), "&e/xyss pickup <on|off> &7个人自动拾取");
+        Text.sendRaw(sender, plugin.getConfig(), "&e/xyss shop [商店名] &7打开灵魂商店");
         if (sender.hasPermission("xysoulspace.admin")) {
-            sender.sendMessage(Text.color("&e/xyss admin <玩家> &7查看玩家灵魂空间"));
-            sender.sendMessage(Text.color("&e/xyss clear [玩家] &7清空灵魂空间"));
-            sender.sendMessage(Text.color("&e/xyss saveitem <id> &7保存手中物品到物品库"));
-            sender.sendMessage(Text.color("&e/xyss giveitem <id> <玩家> <数量> &7发放物品到灵魂空间"));
-            sender.sendMessage(Text.color("&e/xyss globalpickup <on|off|status> &7全局自动拾取"));
+            Text.sendRaw(sender, plugin.getConfig(), "&e/xyss admin <玩家> &7查看玩家灵魂空间");
+            Text.sendRaw(sender, plugin.getConfig(), "&e/xyss clear [玩家] &7清空灵魂空间");
+            Text.sendRaw(sender, plugin.getConfig(), "&e/xyss saveitem <id> &7保存手中物品到物品库");
+            Text.sendRaw(sender, plugin.getConfig(), "&e/xyss giveitem <id> <玩家> <数量> &7发放物品到灵魂空间");
+            Text.sendRaw(sender, plugin.getConfig(), "&e/xyss globalpickup <on|off|status> &7全局自动拾取");
         }
     }
 
@@ -199,7 +199,7 @@ public final class XySoulSpaceCommand implements CommandExecutor {
             return true;
         }
         plugin.getSoulShop().reload();
-        sender.sendMessage(Text.color("&a灵魂商店配置已重载。"));
+        Text.sendRaw(sender, plugin.getConfig(), "&a灵魂商店配置已重载。");
         return true;
     }
 
@@ -209,8 +209,8 @@ public final class XySoulSpaceCommand implements CommandExecutor {
             return true;
         }
         if (args.length < 2 || "status".equalsIgnoreCase(args[1])) {
-            sender.sendMessage(Text.color("&7全局自动拾取: "
-                    + (plugin.getConfig().getBoolean("pickup.global-enabled", true) ? "&a开启" : "&c关闭")));
+            Text.sendRaw(sender, plugin.getConfig(), "&7全局自动拾取: "
+                    + (plugin.getConfig().getBoolean("pickup.global-enabled", true) ? "&a开启" : "&c关闭"));
             return true;
         }
         boolean enabled = args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("true");

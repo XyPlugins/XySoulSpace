@@ -151,9 +151,9 @@ public final class MythicMobsBridge {
     private void sendMessage(Player player, ItemStack item) {
         String template = plugin.getConfig().getString("integrations.mythicmobs.pickup-message", "");
         if (template == null || template.isEmpty()) return;
-        player.sendMessage(Text.color(Text.replace(template,
+        Text.sendRaw(player, plugin.getConfig(), template,
                 "%amount%", String.valueOf(item.getAmount()),
-                "%item%", Text.itemName(item))));
+                "%item%", Text.itemName(item));
     }
 
     private static final class DropRule {

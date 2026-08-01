@@ -47,7 +47,7 @@ public final class ItemLibrary {
             items.put(id.toLowerCase(), hand.clone());
             Text.send(player, plugin.getConfig(), "item-library-saved", "%id%", id);
         } catch (IOException failure) {
-            player.sendMessage(Text.color("&c保存物品库失败: " + failure.getMessage()));
+            Text.sendRaw(player, plugin.getConfig(), "&c保存物品库失败: " + failure.getMessage());
         }
     }
 

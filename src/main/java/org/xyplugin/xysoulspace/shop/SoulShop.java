@@ -85,7 +85,7 @@ public final class SoulShop {
         for (Map.Entry<String, Long> cost : selected.getCosts().entrySet()) {
             long needed = cost.getValue() * multiplier;
             if (service.getAmountByCostKey(player.getUniqueId(), cost.getKey()) < needed) {
-                player.sendMessage(Text.color("&c灵魂空间材料不足: " + cost.getKey() + " x" + needed));
+                Text.sendRaw(player, plugin.getConfig(), "&c灵魂空间材料不足: " + cost.getKey() + " x" + needed);
                 return false;
             }
         }
@@ -95,7 +95,7 @@ public final class SoulShop {
         ItemStack result = selected.getResult();
         long accepted = Inventorys.addItems(player.getInventory(), result, (long) result.getAmount() * multiplier);
         service.save(player.getUniqueId());
-        player.sendMessage(Text.color("&a购买成功，获得 " + accepted + " 个 " + Text.itemName(result)));
+        Text.sendRaw(player, plugin.getConfig(), "&a购买成功，获得 " + accepted + " 个 " + Text.itemName(result));
         return true;
     }
 

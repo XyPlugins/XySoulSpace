@@ -69,8 +69,8 @@ public final class AutoPickupListener implements Listener {
     private void sendPickupMessage(Player player, ItemStack stack) {
         if (!plugin.getConfig().getBoolean("pickup.message-enabled", true)) return;
         String message = plugin.getConfig().getString("pickup.message", "");
-        player.sendMessage(Text.color(Text.replace(message,
+        Text.sendRaw(player, plugin.getConfig(), message,
                 "%amount%", String.valueOf(stack.getAmount()),
-                "%item%", Text.itemName(stack))));
+                "%item%", Text.itemName(stack));
     }
 }

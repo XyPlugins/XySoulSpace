@@ -1,5 +1,13 @@
 # AI Changelog
 
+## 1.1.2
+
+- Added unified player-chat prefix resolution: prefer XyCore `getMessagePrefix()` when XyCore is enabled.
+- Preserved standalone behavior by falling back to XySoulSpace `messages.prefix` when XyCore is missing, disabled, or too old.
+- Routed scattered player messages through `Text.sendRaw`, including commands, auto pickup, MythicMobs drops, soul shop, decomposition, and item-library feedback.
+- Kept console/log output under the XySoulSpace plugin name.
+- Continued to target Java 8 and Paper/Spigot 1.12.2 only.
+
 ## 1.1.1
 
 - Added complete namespaced item-id counting backed by XyCore 0.3.10 matching.
