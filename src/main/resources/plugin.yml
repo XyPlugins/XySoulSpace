@@ -1,5 +1,5 @@
 name: XySoulSpace
-version: '1.1.2'
+version: '1.1.3'
 main: org.xyplugin.xysoulspace.XySoulSpacePlugin
 api-version: '1.12'
 author: XyPlugin

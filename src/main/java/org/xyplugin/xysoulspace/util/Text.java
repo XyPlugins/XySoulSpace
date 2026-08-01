@@ -43,13 +43,27 @@ public final class Text {
 
     public static void sendRaw(CommandSender sender, FileConfiguration config, String message, String... replacements) {
         if (sender == null) return;
-        sender.sendMessage(color(prefix(config) + replace(message, replacements)));
+        sender.sendMessage(color(prefix(sender, config) + replace(message, replacements)));
     }
 
-    public static String prefix(FileConfiguration config) {
-        String fallback = config == null ? "" : config.getString("messages.prefix", "");
-        String corePrefix = xyCorePrefix();
+    public static void sendLocal(CommandSender sender, FileConfiguration config, String key, String... replacements) {
+        String message = config.getString("messages." + key, key);
+        sendLocalRaw(sender, config, message, replacements);
+    }
+
+    public static void sendLocalRaw(CommandSender sender, FileConfiguration config, String message, String... replacements) {
+        if (sender == null) return;
+        sender.sendMessage(color(localPrefix(config) + replace(message, replacements)));
+    }
+
+    public static String prefix(CommandSender sender, FileConfiguration config) {
+        String fallback = localPrefix(config);
+        String corePrefix = sender instanceof org.bukkit.entity.Player ? xyCorePrefix() : null;
         return corePrefix == null ? fallback : corePrefix;
+    }
+
+    public static String localPrefix(FileConfiguration config) {
+        return config == null ? "" : config.getString("messages.prefix", "");
     }
 
     private static String xyCorePrefix() {

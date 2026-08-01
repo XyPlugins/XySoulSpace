@@ -1,5 +1,12 @@
 # XySoulSpace 更新说明
 
+## 1.1.3 - 2026-08-02
+
+- 按服主最终确认调整前缀语义：存入、取出、购买成功、自动拾取、材料不足、分解等玩家玩法提示走 XyCore `messages.prefix`。
+- `/xyss help/reload/reloadshop/globalpickup/giveitem/saveitem/admin/clear` 的权限、用法、玩家不在线和管理反馈保留 XySoulSpace 本地前缀。
+- 新增 `Text.sendLocal/sendLocalRaw`，避免玩家执行管理命令时被误显示为统一系统提示。
+- 保持 XyCore 软依赖；没有 XyCore 时玩家玩法提示仍回退到 XySoulSpace `messages.prefix`。
+
 ## 1.1.2 - 2026-08-02
 
 - 玩家聊天提示前缀改为优先读取 `XyCoreApi#getMessagePrefix()`，检测到XyCore 0.3.11+时与全服Xy系列提示保持一致。

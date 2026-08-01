@@ -1,5 +1,13 @@
 # AI Changelog
 
+## 1.1.3
+
+- Split XySoulSpace chat prefix routing by message semantics.
+- Player gameplay results still use XyCore prefix when available; administrative help, permission, usage, reload, status and admin feedback use the local XySoulSpace prefix.
+- Added `Text.sendLocal` and `Text.sendLocalRaw` for explicit local-prefix command feedback.
+- Kept the soft dependency and standalone fallback behavior unchanged.
+- Did not change storage, shop, pickup, MythicMobs bridge or batch material transaction behavior.
+
 ## 1.1.2
 
 - Added unified player-chat prefix resolution: prefer XyCore `getMessagePrefix()` when XyCore is enabled.

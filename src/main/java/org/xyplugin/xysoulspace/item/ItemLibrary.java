@@ -36,7 +36,7 @@ public final class ItemLibrary {
     public void saveItem(Player player, String id) {
         ItemStack hand = player.getItemInHand();
         if (hand == null || hand.getAmount() <= 0 || hand.getType().name().equals("AIR")) {
-            Text.send(player, plugin.getConfig(), "item-library-missing", "%id%", id);
+            Text.sendLocal(player, plugin.getConfig(), "item-library-missing", "%id%", id);
             return;
         }
         if (!file.getParentFile().exists()) file.getParentFile().mkdirs();
@@ -45,9 +45,9 @@ public final class ItemLibrary {
         try {
             yaml.save(file);
             items.put(id.toLowerCase(), hand.clone());
-            Text.send(player, plugin.getConfig(), "item-library-saved", "%id%", id);
+            Text.sendLocal(player, plugin.getConfig(), "item-library-saved", "%id%", id);
         } catch (IOException failure) {
-            Text.sendRaw(player, plugin.getConfig(), "&c保存物品库失败: " + failure.getMessage());
+            Text.sendLocalRaw(player, plugin.getConfig(), "&c保存物品库失败: " + failure.getMessage());
         }
     }
 

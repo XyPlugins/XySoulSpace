@@ -1,10 +1,10 @@
-# XySoulSpace 1.1.2
+# XySoulSpace 1.1.3
 
 XySoulSpace 是 XY 系列的灵魂仓库插件，面向 `Paper/Spigot 1.12.2` RPG 服务器。
 
 它由旧版 SoulSpace 重构而来，统一改为 `org.xyplugin.xysoulspace` 包名和 `/xyss` 指令入口，并为后续 `XyForge`、强化、兑换、活动等 XY 系列插件预留 API 与事件。
 
-当前 1.1.2 版本默认使用本地 YML 存储，不要求 XyCore 开启 SQL 数据库。XyForgeCrafting读取材料时建议服务器同时安装XyCore 0.3.11或更高兼容版本。
+当前 1.1.3 版本默认使用本地 YML 存储，不要求 XyCore 开启 SQL 数据库。XyForgeCrafting读取材料时建议服务器同时安装XyCore 0.3.12或更高兼容版本。
 
 ## 核心功能
 
@@ -16,11 +16,11 @@ XySoulSpace 是 XY 系列的灵魂仓库插件，面向 `Paper/Spigot 1.12.2` RP
 - 物品库：管理员保存手持物品，并发放到玩家灵魂空间。
 - 灵魂商店：使用灵魂空间中的材料兑换物品。
 - MythicMobs 桥接：兼容旧 SoulSpace 的 `ssdrops` 字段，支持物品库 ID 或 MythicMobs 物品 ID。
-- XyCore 生态：检测到 XyCore 时会以 XY 扩展身份运行，玩家聊天提示优先使用XyCore前缀；没有XyCore时继续使用本插件前缀独立运行。
+- XyCore 生态：检测到 XyCore 时会以 XY 扩展身份运行；灵魂仓库存取、购买、自动拾取等玩家玩法提示优先使用XyCore前缀，管理/帮助/报错提示继续使用本插件前缀。
 
 ## 安装
 
-1. 将 `XySoulSpace-1.1.2.jar` 放入服务器 `plugins` 文件夹。
+1. 将 `XySoulSpace-1.1.3.jar` 放入服务器 `plugins` 文件夹。
 2. 重启服务器生成 `plugins/XySoulSpace/config.yml` 和 `shop.yml`。
 3. 给玩家发放权限：
 
@@ -226,10 +226,11 @@ XySoulSpaceItemDepositEvent
 
 ## 玩家消息前缀
 
-XySoulSpace 是可独立使用的插件，`plugin.yml` 中的 XyCore 只是软依赖。玩家聊天提示的前缀规则为：
+XySoulSpace 是可独立使用的插件，`plugin.yml` 中的 XyCore 只是软依赖。前缀规则为：
 
-- 已安装并启用 XyCore 0.3.11+：优先读取 `plugins/XyCore/config.yml -> messages.prefix`。
-- 未安装 XyCore、XyCore未启用或旧Core没有前缀API：使用本插件 `config.yml -> messages.prefix`。
+- 存入、取出、自动拾取、商店购买、材料不足、分解等玩家玩法提示：已安装并启用 XyCore 0.3.12+ 时优先读取 `plugins/XyCore/config.yml -> messages.prefix`。
+- help、reload、reloadshop、globalpickup、giveitem、saveitem、admin、clear 的用法、权限和管理反馈：使用本插件 `config.yml -> messages.prefix`。
+- 未安装 XyCore、XyCore未启用或旧Core没有前缀API：玩家玩法提示也回退到本插件 `messages.prefix`。
 
 控制台日志和后台输出继续保留XySoulSpace自己的插件名，不使用统一玩家前缀。
 
@@ -270,5 +271,5 @@ gradlew.bat clean build
 输出：
 
 ```text
-build/libs/XySoulSpace-1.1.2.jar
+build/libs/XySoulSpace-1.1.3.jar
 ```

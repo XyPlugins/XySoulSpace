@@ -32,7 +32,7 @@ public final class XySoulSpaceCommand implements CommandExecutor {
         if ("globalpickup".equals(sub)) return globalPickup(sender, args);
         if ("giveitem".equals(sub)) return giveItem(sender, args);
         if (!(sender instanceof Player)) {
-            Text.send(sender, plugin.getConfig(), "only-player");
+            Text.sendLocal(sender, plugin.getConfig(), "only-player");
             return true;
         }
         Player player = (Player) sender;
@@ -58,7 +58,7 @@ public final class XySoulSpaceCommand implements CommandExecutor {
             case "saveitem":
                 if (!has(player, "xysoulspace.admin")) return true;
                 if (args.length < 2) {
-                    Text.sendRaw(player, plugin.getConfig(), "&c用法: /xyss saveitem <id>");
+                    Text.sendLocalRaw(player, plugin.getConfig(), "&c用法: /xyss saveitem <id>");
                     return true;
                 }
                 plugin.getItemLibrary().saveItem(player, args[1]);
@@ -79,38 +79,38 @@ public final class XySoulSpaceCommand implements CommandExecutor {
 
     private boolean reload(CommandSender sender) {
         if (!sender.hasPermission("xysoulspace.reload")) {
-            Text.send(sender, plugin.getConfig(), "no-permission");
+            Text.sendLocal(sender, plugin.getConfig(), "no-permission");
             return true;
         }
         plugin.reloadXySoulSpace();
-        Text.send(sender, plugin.getConfig(), "reload");
+        Text.sendLocal(sender, plugin.getConfig(), "reload");
         return true;
     }
 
     private boolean giveItem(CommandSender sender, String[] args) {
         if (!sender.hasPermission("xysoulspace.admin")) {
-            Text.send(sender, plugin.getConfig(), "no-permission");
+            Text.sendLocal(sender, plugin.getConfig(), "no-permission");
             return true;
         }
         if (args.length < 4) {
-            Text.sendRaw(sender, plugin.getConfig(), "&c用法: /xyss giveitem <id> <player> <amount>");
+            Text.sendLocalRaw(sender, plugin.getConfig(), "&c用法: /xyss giveitem <id> <player> <amount>");
             return true;
         }
         Player target = Bukkit.getPlayer(args[2]);
         if (target == null) {
-            Text.send(sender, plugin.getConfig(), "player-not-found");
+            Text.sendLocal(sender, plugin.getConfig(), "player-not-found");
             return true;
         }
         ItemStack item = plugin.getItemLibrary().get(args[1]);
         if (item == null) {
-            Text.send(sender, plugin.getConfig(), "item-library-missing", "%id%", args[1]);
+            Text.sendLocal(sender, plugin.getConfig(), "item-library-missing", "%id%", args[1]);
             return true;
         }
         int amount = parseInt(args[3], 1);
         item.setAmount(Math.max(1, amount));
         service.deposit(target, item, "library");
         service.save(target.getUniqueId());
-        Text.send(sender, plugin.getConfig(), "item-library-given",
+        Text.sendLocal(sender, plugin.getConfig(), "item-library-given",
                 "%id%", args[1],
                 "%player%", target.getName(),
                 "%amount%", String.valueOf(amount));
@@ -142,12 +142,12 @@ public final class XySoulSpaceCommand implements CommandExecutor {
 
     private void adminOpen(Player player, String[] args) {
         if (args.length < 2) {
-            Text.sendRaw(player, plugin.getConfig(), "&c用法: /xyss admin <player>");
+            Text.sendLocalRaw(player, plugin.getConfig(), "&c用法: /xyss admin <player>");
             return;
         }
         Player target = Bukkit.getPlayer(args[1]);
         if (target == null) {
-            Text.send(player, plugin.getConfig(), "player-not-found");
+            Text.sendLocal(player, plugin.getConfig(), "player-not-found");
             return;
         }
         plugin.getGui().open(player, target, 0, true);
@@ -156,17 +156,17 @@ public final class XySoulSpaceCommand implements CommandExecutor {
     private void clear(Player player, String[] args) {
         Player target = args.length > 1 ? Bukkit.getPlayer(args[1]) : player;
         if (target == null) {
-            Text.send(player, plugin.getConfig(), "player-not-found");
+            Text.sendLocal(player, plugin.getConfig(), "player-not-found");
             return;
         }
         service.getStorage(target.getUniqueId()).clear();
         service.save(target.getUniqueId());
-        Text.send(player, plugin.getConfig(), "storage-cleared", "%player%", target.getName());
+        Text.sendLocal(player, plugin.getConfig(), "storage-cleared", "%player%", target.getName());
     }
 
     private boolean has(Player player, String permission) {
         if (player.isOp() || player.hasPermission(permission)) return true;
-        Text.send(player, plugin.getConfig(), "no-permission");
+        Text.sendLocal(player, plugin.getConfig(), "no-permission");
         return false;
     }
 
@@ -179,44 +179,44 @@ public final class XySoulSpaceCommand implements CommandExecutor {
     }
 
     private void help(CommandSender sender) {
-        Text.sendRaw(sender, plugin.getConfig(), "&6=== XySoulSpace " + plugin.getDescription().getVersion() + " ===");
-        Text.sendRaw(sender, plugin.getConfig(), "&e/xyss open &7打开灵魂空间");
-        Text.sendRaw(sender, plugin.getConfig(), "&e/xyss store &7存入手中物品");
-        Text.sendRaw(sender, plugin.getConfig(), "&e/xyss pickup <on|off> &7个人自动拾取");
-        Text.sendRaw(sender, plugin.getConfig(), "&e/xyss shop [商店名] &7打开灵魂商店");
+        Text.sendLocalRaw(sender, plugin.getConfig(), "&6=== XySoulSpace " + plugin.getDescription().getVersion() + " ===");
+        Text.sendLocalRaw(sender, plugin.getConfig(), "&e/xyss open &7打开灵魂空间");
+        Text.sendLocalRaw(sender, plugin.getConfig(), "&e/xyss store &7存入手中物品");
+        Text.sendLocalRaw(sender, plugin.getConfig(), "&e/xyss pickup <on|off> &7个人自动拾取");
+        Text.sendLocalRaw(sender, plugin.getConfig(), "&e/xyss shop [商店名] &7打开灵魂商店");
         if (sender.hasPermission("xysoulspace.admin")) {
-            Text.sendRaw(sender, plugin.getConfig(), "&e/xyss admin <玩家> &7查看玩家灵魂空间");
-            Text.sendRaw(sender, plugin.getConfig(), "&e/xyss clear [玩家] &7清空灵魂空间");
-            Text.sendRaw(sender, plugin.getConfig(), "&e/xyss saveitem <id> &7保存手中物品到物品库");
-            Text.sendRaw(sender, plugin.getConfig(), "&e/xyss giveitem <id> <玩家> <数量> &7发放物品到灵魂空间");
-            Text.sendRaw(sender, plugin.getConfig(), "&e/xyss globalpickup <on|off|status> &7全局自动拾取");
+            Text.sendLocalRaw(sender, plugin.getConfig(), "&e/xyss admin <玩家> &7查看玩家灵魂空间");
+            Text.sendLocalRaw(sender, plugin.getConfig(), "&e/xyss clear [玩家] &7清空灵魂空间");
+            Text.sendLocalRaw(sender, plugin.getConfig(), "&e/xyss saveitem <id> &7保存手中物品到物品库");
+            Text.sendLocalRaw(sender, plugin.getConfig(), "&e/xyss giveitem <id> <玩家> <数量> &7发放物品到灵魂空间");
+            Text.sendLocalRaw(sender, plugin.getConfig(), "&e/xyss globalpickup <on|off|status> &7全局自动拾取");
         }
     }
 
     private boolean reloadShop(CommandSender sender) {
         if (!sender.hasPermission("xysoulspace.shop.admin")) {
-            Text.send(sender, plugin.getConfig(), "no-permission");
+            Text.sendLocal(sender, plugin.getConfig(), "no-permission");
             return true;
         }
         plugin.getSoulShop().reload();
-        Text.sendRaw(sender, plugin.getConfig(), "&a灵魂商店配置已重载。");
+        Text.sendLocalRaw(sender, plugin.getConfig(), "&a灵魂商店配置已重载。");
         return true;
     }
 
     private boolean globalPickup(CommandSender sender, String[] args) {
         if (!sender.hasPermission("xysoulspace.admin")) {
-            Text.send(sender, plugin.getConfig(), "no-permission");
+            Text.sendLocal(sender, plugin.getConfig(), "no-permission");
             return true;
         }
         if (args.length < 2 || "status".equalsIgnoreCase(args[1])) {
-            Text.sendRaw(sender, plugin.getConfig(), "&7全局自动拾取: "
+            Text.sendLocalRaw(sender, plugin.getConfig(), "&7全局自动拾取: "
                     + (plugin.getConfig().getBoolean("pickup.global-enabled", true) ? "&a开启" : "&c关闭"));
             return true;
         }
         boolean enabled = args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("true");
         plugin.getConfig().set("pickup.global-enabled", enabled);
         plugin.saveConfig();
-        Text.send(sender, plugin.getConfig(), enabled ? "global-pickup-on" : "global-pickup-off");
+        Text.sendLocal(sender, plugin.getConfig(), enabled ? "global-pickup-on" : "global-pickup-off");
         return true;
     }
 }

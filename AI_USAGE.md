@@ -1,5 +1,20 @@
 # AI 使用记录
 
+## 1.1.3
+
+本次修改由AI根据服主最终确认的“玩家玩法提示统一、管理/报错提示保留插件名”规则辅助完成。
+
+已确认的实现边界：
+
+- 玩家玩法结果继续通过 `Text.send/sendRaw` 走 XyCore 前缀，包括存入、取出、自动拾取、商店购买、MM掉落和分解提示。
+- 管理/帮助/报错改用 `Text.sendLocal/sendLocalRaw`，包括 help、reload、reloadshop、globalpickup、giveitem、saveitem、admin、clear 的用法与权限反馈。
+- XySoulSpace 仍保持 XyCore 软依赖，独立运行时所有提示回退到本插件 `messages.prefix`。
+- 本次不改变仓库YML结构、材料原子扣除、商店兑换、自动拾取性能和 MythicMobs 桥接。
+
+验证记录：
+
+- 已执行 `gradlew.bat compileJava --no-daemon` 通过，最终交付前参与全量 `clean build`。
+
 ## 1.1.2
 
 本次修改由AI根据服主确认的“可独立使用插件没有XyCore时保留自己前缀”规则辅助完成。
