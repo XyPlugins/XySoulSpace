@@ -1,5 +1,26 @@
 # AI Changelog
 
+## 1.1.11
+
+- Fixed player-facing withdrawal messages showing a namespaced XyItems ID even when the ItemStack has an actual custom display name.
+- Changed normal `id`, `name` and `display` modes to prefer the real custom name, then fall back to a custom library ID or vanilla friendly name as appropriate.
+- Preserved strict namespaced output through the explicit `raw-id` diagnostic mode.
+- Applied the shared name selection behavior to withdrawal, manual deposit, soul-shop and auto-pickup messages without changing item data or storage identity.
+- Added event-driven mob-drop ownership tracking: a bounded death-batch cache correlates the final death drops with nearby `ItemSpawnEvent` entities by world, position, complete ItemStack similarity and remaining amount.
+- Bound matched entities to the original killer so leaving the configured scan range cannot transfer the drop to another nearby player's auto pickup.
+- Added one server-wide due queue which processes only due owned drops every tick; no per-player or per-item scheduler is created and the existing range scan interval is unchanged.
+- Bounded actual owned-drop deposits to `pickup.max-owned-pickups-per-tick` (default 32, clamped 1-512); excess due entries remain queued for later ticks instead of creating a main-thread burst.
+- Added configurable `pickup.mob-drop-delay-ticks` with a clamped 1-200 range and a 10-tick default, preserving the visible ground-drop effect before storage delivery.
+- Protected owned drops from another player's pickup, hopper/entity pickup and cross-owner merging while ownership is active; failed delivery releases ownership without deleting the entity.
+- Changed MythicMobs `ssdrops` from immediate direct deposit to an owned ground entity using the same delay and delivery path.
+- Kept the death matcher bounded to 2 seconds and 2048 pending death batches; owned records have a 200-tick safety expiry when another plugin extends pickup delay.
+- Ignored cancelled death batches, consumed spawn matches from the earliest spawn priority, and released remaining entity pickup delays when the plugin is disabled.
+- Treats an `ssdrops` spawn attempt consumed or cancelled by another item plugin as handled, preventing a fallback second spawn and duplicate delivery.
+- Replaced per-byte `String.format` calls in storage-key SHA-256 encoding with an equivalent lowercase hex lookup, preserving every existing key while reducing allocation in the deposit hot path.
+- Kept already-ready entities owned while they wait behind the per-tick budget; the 200-tick safety expiry now applies only while another plugin keeps `pickupDelay` above zero.
+- Added eleven regression tests: four for item-name selection, six for death-drop matching/queue behavior and one standard SHA-256 compatibility vector. The suite now contains 16 tests.
+- Updated release metadata and user/AI documentation to 1.1.11.
+
 ## 1.1.10
 
 - Added a slot `51` auto-pickup control with enabled, disabled and globally-disabled presentations; another player's admin view only permits pagination and closing.

@@ -1,16 +1,16 @@
-# XySoulSpace 1.1.10
+# XySoulSpace 1.1.11
 
 XySoulSpace 是 XY 系列的灵魂仓库插件，面向 `Paper/Spigot 1.12.2` RPG 服务器。
 
 它由旧版 SoulSpace 重构而来，统一改为 `org.xyplugin.xysoulspace` 包名和 `/xyss` 指令入口，并为后续 `XyForge`、强化、兑换、活动等 XY 系列插件预留 API 与事件。
 
-当前 1.1.10 版本默认使用本地 YML 存储，不要求 XyCore 开启 SQL 数据库。XyForgeCrafting读取材料时建议服务器同时安装XyCore 0.3.12或更高兼容版本。
+当前 1.1.11 版本默认使用本地 YML 存储，不要求 XyCore 开启 SQL 数据库。XyForgeCrafting读取材料时建议服务器同时安装XyCore 0.3.12或更高兼容版本。
 
 ## 核心功能
 
 - 灵魂空间：远程仓库 GUI，同类物品按完整 ItemStack 模板无限叠加。
 - 本地存储：每个玩家独立保存到 `plugins/XySoulSpace/soulspace/<uuid>.yml`。
-- 自动拾取：普通事件拾取、范围扫描和 MythicMobs `ssdrops` 共用个人/全局开关；成功入库后才删除地面实体。
+- 自动拾取：怪物掉落短暂落地后按击杀者归属入库，普通地面物品继续使用范围扫描；成功入库后才删除实体。
 - 一键存入：只将主背包和快捷栏物品存入灵魂空间，不处理装备栏、副手或其它客户端槽位。
 - 手动存入：打开灵魂空间时点击下方背包物品即可存入，左键1个，右键最多64个，Shift左键存入背包内全部相同物品。
 - 快捷分解：按物品 Lore 匹配规则执行服务端命令。
@@ -21,7 +21,7 @@ XySoulSpace 是 XY 系列的灵魂仓库插件，面向 `Paper/Spigot 1.12.2` RP
 
 ## 安装
 
-1. 将 `XySoulSpace-1.1.10.jar` 放入服务器 `plugins` 文件夹。
+1. 将 `XySoulSpace-1.1.11.jar` 放入服务器 `plugins` 文件夹。
 2. 重启服务器生成 `plugins/XySoulSpace/config.yml` 和 `shop.yml`。
 3. 给玩家发放权限：
 
@@ -92,7 +92,7 @@ storage:
 
 ## 自动拾取
 
-1.1.10 将普通拾取事件、附近掉落物范围扫描和 MythicMobs `ssdrops` 统一到同一套判断。玩家必须同时满足以下条件才会直接存入灵魂空间：
+普通拾取事件、附近掉落物范围扫描、怪物死亡掉落和 MythicMobs `ssdrops` 共用同一套判断。玩家必须同时满足以下条件才会自动存入灵魂空间：
 
 - 拥有 `xysoulspace.use` 权限。
 - `pickup.global-enabled` 为 `true`。
@@ -106,6 +106,8 @@ pickup:
   default-player-enabled: true
   range: 6.0
   scan-interval-ticks: 10
+  mob-drop-delay-ticks: 10
+  max-owned-pickups-per-tick: 32
   notification-enabled: true
   notification-merge-ticks: 10
   notification-message: "&a已自动拾取 &r%item% &7x%amount% &a进入灵魂仓库"
@@ -116,15 +118,19 @@ gui:
   pickup-global-disabled-button-material: BARRIER
 ```
 
-`range` 是X/Y/Z三个方向的扫描半径，运行时限制在 `0.5-64`；扫描任务全服只创建一个，不会为每名玩家创建独立定时任务。事件拾取和范围扫描不会重建物品，会保留NBT、品质、随机属性和业务Lore；仅继续清理旧版本遗留的 `灵魂数量/Key/左键取右键取` 内部GUI提示行。OP与显式拥有 `xysoulspace.use` 的玩家使用相同判断，但普通玩家仍需实际获得该权限。
+`range` 是普通无归属地面物品在X/Y/Z三个方向的扫描半径，运行时限制在 `0.5-64`。怪物死亡时，插件会把最终掉落清单和随后生成的Item实体按世界、死亡位置、完整ItemStack及数量绑定到击杀者；即使击杀者立即跑出扫描范围，物品也会在 `mob-drop-delay-ticks` 后进入原击杀者仓库。该延迟限制为 `1-200 tick`，默认 `10 tick` 约为0.5秒。
 
-安全顺序固定为：先确认完整 ItemStack 成功写入仓库，再删除地面实体并发送提示。仓库拒绝写入或执行失败时，原地面物品会保留；MythicMobs `ssdrops` 无法直接入库时则在怪物死亡位置生成掉落物。相同玩家、相同物品在 `notification-merge-ticks` 窗口内会合并数量，避免连续掉落刷屏。
+归属期内，其他玩家、漏斗和生物不能提前取走绑定物品；不同归属的地面物品也不会合并。击杀者掉线、关闭自动拾取、失去权限或仓库拒绝写入时会解除内存归属并保留地面物品，不会静默删除。玩家死亡掉落不会绑定，避免PvP装备被远程吸入仓库。
+
+运行时只有一个普通范围扫描任务和一个只处理到期归属队列的轻量任务，不会为每名玩家或每件掉落创建定时任务。`max-owned-pickups-per-tick` 限制每tick实际入库数量为 `1-512`，默认32；突发超过上限的到期物品会保持原归属并顺延，避免大量玩家同时刷怪时在一个主线程tick完成全部ItemStack识别和入库。事件拾取和范围扫描不会重建物品，会保留NBT、品质、随机属性和业务Lore；仅继续清理旧版本遗留的 `灵魂数量/Key/左键取右键取` 内部GUI提示行。OP与显式拥有 `xysoulspace.use` 的玩家使用相同判断，但普通玩家仍需实际获得该权限。
+
+安全顺序固定为：先确认完整 ItemStack 成功写入仓库，再删除地面实体并发送提示。仓库拒绝写入或执行失败时，原地面物品会保留；MythicMobs `ssdrops` 也会先在怪物死亡位置展示，再按相同归属流程入库。相同玩家、相同物品在 `notification-merge-ticks` 窗口内会合并数量，避免连续掉落刷屏。
 
 自动拾取成功提示属于玩家玩法消息：检测到兼容的 XyCore 时使用 XyCore 的玩家前缀，未安装或未启用 XyCore 时回退到 XySoulSpace 前缀。`%item%` 和 `%item_name%` 为实际 ItemStack 显示名，`%item_id%` 为完整物品ID，`%amount%` 为本次合并后的数量。
 
 执行 `/xyss reload` 会重新读取配置、物品库与商店，刷新XyCore桥接，重新缓存 MythicMobs `ssdrops` 规则，并按新的扫描间隔和自动保存间隔重启各自唯一任务。已有玩家的个人开关保存在其灵魂空间YML中，不会因重载被覆盖。
 
-从旧版本升级时可以继续使用原 `config.yml`，缺少的新键会使用上述默认值。旧的 `integrations.mythicmobs.pickup-message`、`pickup.message-enabled` 和 `pickup.message` 已不再读取；需要自定义统一提示时，请改用 `pickup.notification-*`。
+从旧版本升级时可以继续使用原 `config.yml`，缺少 `mob-drop-delay-ticks` 和 `max-owned-pickups-per-tick` 时会在内存中分别使用10和32；Bukkit不会自动把缺失键写回旧文件，需要自定义时手动加入。执行 `/xyss reload` 后，新数值对之后产生或到期的掉落生效。旧的 `integrations.mythicmobs.pickup-message`、`pickup.message-enabled` 和 `pickup.message` 已不再读取；需要自定义统一提示时，请改用 `pickup.notification-*`。
 
 ## 物品匹配规则
 
@@ -177,7 +183,7 @@ gui:
 
 ## 玩家消息中的物品显示
 
-1.1.6继续优化了玩家消息中的原版物品名称显示：
+玩家消息中的物品名称显示规则如下：
 
 ```yaml
 messages:
@@ -189,9 +195,9 @@ messages:
 
 可选值：
 
-- `id`：默认。`XyItems/MythicMobs` 等自定义物品显示完整物品ID；原版 `minecraft` 物品优先显示 `vanilla-names` 覆盖名或插件内置中文名，例如 `BEACON -> 信标`。
+- `id`：默认。优先显示物品实际自定义Name，例如“未净化的赤牙墨魄”；没有Name的XyItems/MythicMobs物品才显示完整ID，原版物品显示中文名。
 - `raw-id`：严格显示完整ID，例如 `minecraft:BEACON`，主要用于调试。
-- `name` / `display`：优先显示物品自定义显示名；没有自定义显示名时，再显示原版中文名或完整ID。
+- `name` / `display`：与默认 `id` 使用相同的玩家友好显示规则，作为旧配置兼容别名保留。
 
 存入、取出、自动拾取、MythicMobs桥接拾取和灵魂商店购买提示都会使用这个规则。
 
@@ -274,7 +280,7 @@ ZombieKing:
 
 概率只接受 `0-1` 小数或 `0%-100%` 百分数。数量必须为正整数；格式错误、`NaN` 或超范围规则会在重载时被忽略并记录后台警告，不会按100%意外掉落。
 
-`ssdrops` 规则只在插件启动和 `/xyss reload` 时扫描并缓存。怪物死亡时只查询内存快照，不会在掉落热路径反复遍历 MythicMobs 配置文件。击杀者满足统一自动拾取条件时物品直接进入灵魂空间；个人或全局开关关闭、权限不足或入库失败时，物品会掉落在怪物死亡位置。
+`ssdrops` 规则只在插件启动和 `/xyss reload` 时扫描并缓存。怪物死亡时只查询内存快照，不会在掉落热路径反复遍历 MythicMobs 配置文件。击杀者满足统一自动拾取条件时，物品先在死亡位置展示 `mob-drop-delay-ticks`，随后进入击杀者灵魂空间；个人或全局开关关闭、权限不足或入库失败时，物品会继续留在地面。
 
 ## 给其他 XY 插件调用
 
@@ -326,6 +332,20 @@ XySoulSpace 是可独立使用的插件，`plugin.yml` 中的 XyCore 只是软�
 控制台日志和后台输出继续保留XySoulSpace自己的插件名，不使用统一玩家前缀。
 
 ## 版本记录
+
+### 1.1.11
+
+- 修复从灵魂空间取出XyItems/MythicMobs物品时，聊天提示显示 `xyitems:id` 而不是物品实际Name的问题。
+- 普通 `id/name/display` 模式统一优先使用ItemStack自定义Name；无Name的自定义物品回退完整库ID，原版物品回退中文材质名。
+- `raw-id` 继续严格显示完整ID，保留管理员诊断能力。
+- 同一显示规则同步覆盖手动存入、取出和灵魂商店获得物品提示。
+- 修复击杀者离开后，附近其他玩家会自动拾取其怪物掉落的问题；怪物掉落现在按最终掉落清单与实体精确绑定击杀者。
+- 原版、MythicMobs普通Drops、XyItems桥接Drops和 `ssdrops` 都会先在地面展示，默认约0.5秒后无视距离进入原击杀者仓库。
+- 归属期阻止其他玩家、漏斗、生物和跨归属物品合并；玩家死亡掉落不参与绑定。
+- 新增 `pickup.mob-drop-delay-ticks`，旧配置缺少时自动使用10；采用单个全局到期队列，不创建逐物品任务。
+- 新增每tick默认32件的到期入库预算，突发掉落自动分散到后续tick，避免500人同时刷怪形成单tick峰值。
+- 优化仓库存储键SHA-256十六进制转换，保持已有Key完全一致并减少批量入库时的临时对象。
+- 其它掉落合并/清理插件接管 `ssdrops` 生成事件时不再二次回退，避免跨插件重复生成。
 
 ### 1.1.10
 
@@ -425,5 +445,5 @@ gradlew.bat clean build
 输出：
 
 ```text
-build/libs/XySoulSpace-1.1.10.jar
+build/libs/XySoulSpace-1.1.11.jar
 ```

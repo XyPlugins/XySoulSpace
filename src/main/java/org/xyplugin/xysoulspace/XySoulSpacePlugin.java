@@ -150,23 +150,19 @@ public final class XySoulSpacePlugin extends JavaPlugin {
         if (item == null) return "";
         String mode = getConfig().getString("messages.item-name-mode", "id").trim().toLowerCase();
         String itemId = itemId(item);
-        if ("raw-id".equals(mode)) return itemId;
+        String customName = "raw-id".equals(mode) ? "" : customDisplayName(item);
+        String vanillaName = customName.isEmpty() && itemId.regionMatches(true, 0,
+                "minecraft:", 0, "minecraft:".length()) ? vanillaDisplayName(item) : "";
+        return selectMessageItemName(mode, itemId, customName, vanillaName);
+    }
 
-        if ("name".equals(mode) || "display".equals(mode)) {
-            String customName = customDisplayName(item);
-            if (!customName.isEmpty()) return customName;
-            String vanillaName = vanillaDisplayName(item);
-            if (!vanillaName.isEmpty()) return vanillaName;
-            return itemId;
-        }
-
-        if ("id".equals(mode) && itemId.toLowerCase().startsWith("minecraft:")) {
-            String customName = customDisplayName(item);
-            if (!customName.isEmpty()) return customName;
-            String vanillaName = vanillaDisplayName(item);
-            if (!vanillaName.isEmpty()) return vanillaName;
-        }
-        return itemId;
+    static String selectMessageItemName(String mode, String itemId, String customName, String vanillaName) {
+        String safeId = itemId == null ? "" : itemId;
+        if ("raw-id".equalsIgnoreCase(mode)) return safeId;
+        if (customName != null && !customName.isEmpty()) return customName;
+        if (safeId.regionMatches(true, 0, "minecraft:", 0, "minecraft:".length())
+                && vanillaName != null && !vanillaName.isEmpty()) return vanillaName;
+        return safeId;
     }
 
     public String itemId(ItemStack item) {

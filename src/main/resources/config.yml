@@ -1,5 +1,5 @@
 # ============================================================
-# XySoulSpace 1.1.10
+# XySoulSpace 1.1.11
 # Paper/Spigot 1.12.2
 #
 # 当前版本默认使用本地 YML 存储，后续可切换到 XyCore/SQL 存储。
@@ -29,7 +29,7 @@ integrations:
     enabled: true
 
 pickup:
-  # 全局总开关。关闭后事件拾取、范围扫描和MythicMobs ssdrops均不会直接入库。
+  # 全局总开关。关闭后事件拾取、范围扫描和MythicMobs ssdrops均不会自动入库。
   global-enabled: true
   # 新玩家首次生成灵魂空间数据时的个人开关默认值。
   default-player-enabled: true
@@ -37,6 +37,12 @@ pickup:
   range: 6.0
   # 复用一个全服扫描任务；数值越小检查越频繁，正式服建议不要低于默认值10。
   scan-interval-ticks: 10
+  # 怪物掉落在地面展示多久后进入击杀者灵魂仓库，运行时限制为1-200，10 tick约为0.5秒。
+  # 该延迟只由一个全局轻量队列处理，不会为每件掉落创建定时任务。
+  mob-drop-delay-ticks: 10
+  # 同一个tick最多处理多少件已到期的击杀归属掉落，运行时限制为1-512。
+  # 超出的物品会顺延到后续tick，避免大量玩家同时刷怪时形成主线程尖峰。
+  max-owned-pickups-per-tick: 32
   # 是否向玩家发送自动拾取成功提示。
   notification-enabled: true
   # 相同玩家、相同物品在该时间窗口内合并为一条提示，单位为tick。
@@ -86,9 +92,9 @@ messages:
   # 独立运行时使用本前缀；检测到 XyCore 时，玩家聊天提示优先使用 XyCore config.yml -> messages.prefix。
   prefix: "&7[&bXySoulSpace&7]&r "
   # 玩家消息中%item%的显示方式。
-  # id = XyItems/MythicMobs显示完整物品ID；原版minecraft物品优先使用下方中文名映射。
+  # id = 优先显示物品真实Name；没有Name的自定义物品显示完整ID，原版物品显示中文名。
   # raw-id = 严格显示完整物品ID，例如 minecraft:BEACON。
-  # name/display = 优先显示物品自定义显示名；没有显示名时再使用原版中文名或完整ID。
+  # name/display = id模式的兼容别名。
   item-name-mode: "id"
   # 原版物品的玩家提示显示名覆盖表。
   # 插件已经内置1.12.2基础Material中文名；这里仅用于覆盖你想自定义的叫法。

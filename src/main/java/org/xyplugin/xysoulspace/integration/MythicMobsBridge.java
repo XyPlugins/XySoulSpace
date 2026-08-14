@@ -78,6 +78,7 @@ public final class MythicMobsBridge {
         if (mobId.isEmpty()) return;
         List<DropRule> rules = rulesByMob.get(mobId.toLowerCase(Locale.ENGLISH));
         if (rules == null || rules.isEmpty()) return;
+        Location deathLocation = readDeathLocation(event);
         for (DropRule rule : rules) {
             if (random.nextDouble() >= rule.chance) continue;
             ItemStack item = createDrop(rule);
@@ -85,7 +86,8 @@ public final class MythicMobsBridge {
                 warnMissingItem(rule.itemId);
                 continue;
             }
-            if (plugin.getAutoPickup() == null || !plugin.getAutoPickup().depositDirect(killer, item)) {
+            if (plugin.getAutoPickup() == null
+                    || !plugin.getAutoPickup().spawnOwnedDrop(killer, deathLocation, item)) {
                 dropAtDeath(event, killer, item);
             }
         }

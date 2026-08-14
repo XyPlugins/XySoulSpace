@@ -10,6 +10,8 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 
 public final class ItemKeys {
+    private static final char[] HEX = "0123456789abcdef".toCharArray();
+
     private ItemKeys() {
     }
 
@@ -55,12 +57,15 @@ public final class ItemKeys {
                 || (plain.contains("左键取") && plain.contains("右键取"));
     }
 
-    private static String sha256(String input) {
+    static String sha256(String input) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
             byte[] bytes = digest.digest(input.getBytes(StandardCharsets.UTF_8));
             StringBuilder builder = new StringBuilder(bytes.length * 2);
-            for (byte b : bytes) builder.append(String.format("%02x", b));
+            for (byte b : bytes) {
+                builder.append(HEX[(b >>> 4) & 0x0F]);
+                builder.append(HEX[b & 0x0F]);
+            }
             return builder.toString();
         } catch (Exception ignored) {
             return Integer.toHexString(input.hashCode());
