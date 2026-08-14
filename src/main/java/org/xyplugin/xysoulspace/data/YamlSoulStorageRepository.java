@@ -19,7 +19,7 @@ public final class YamlSoulStorageRepository {
         this.folder = new File(plugin.getDataFolder(), "soulspace");
     }
 
-    public SoulStorage load(UUID uuid) {
+    public synchronized SoulStorage load(UUID uuid) {
         File file = fileOf(uuid);
         SoulStorage storage = new SoulStorage();
         storage.setPickupEnabled(plugin.getConfig().getBoolean("pickup.default-player-enabled", true));
@@ -48,19 +48,20 @@ public final class YamlSoulStorageRepository {
         return storage;
     }
 
-    public void save(UUID uuid, SoulStorage storage) {
+    public synchronized void save(UUID uuid, SoulStorage storage) {
         if (!folder.exists()) folder.mkdirs();
         File file = fileOf(uuid);
         YamlConfiguration yaml = new YamlConfiguration();
-        yaml.set("settings.pickup-enabled", storage.isPickupEnabled());
-        for (Map.Entry<String, SoulItemRecord> entry : storage.entriesSnapshot()) {
+        SoulStorage.Snapshot snapshot = storage.snapshot();
+        yaml.set("settings.pickup-enabled", snapshot.isPickupEnabled());
+        for (Map.Entry<String, SoulItemRecord> entry : snapshot.entries()) {
             String path = "items." + entry.getKey();
             yaml.set(path + ".amount", entry.getValue().getAmount());
             yaml.set(path + ".item", entry.getValue().getItem());
         }
         try {
             yaml.save(file);
-            storage.markClean();
+            storage.markClean(snapshot.getRevision());
         } catch (IOException failure) {
             plugin.getLogger().warning("保存灵魂空间数据失败 " + uuid + ": " + failure.getMessage());
         }

@@ -38,7 +38,7 @@ public final class DecomposeService {
             }
         }
         service.save(player.getUniqueId());
-        Text.sendRaw(player, plugin.getConfig(), "&a已分解 " + count + " 个物品。");
+        Text.sendRaw(player, plugin.getConfig(), "&a已分解 " + count + " 个物品");
     }
 
     private List<String> matchCommands(ItemStack item) {

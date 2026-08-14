@@ -50,10 +50,14 @@ public final class SoulSpaceService implements XySoulSpaceApi {
     }
 
     public boolean deposit(Player player, ItemStack item, String source) {
+        return deposit(player, item, source, true);
+    }
+
+    public boolean deposit(Player player, ItemStack item, String source, boolean refreshGui) {
         boolean result = deposit(player.getUniqueId(), item);
         if (result) {
             Bukkit.getPluginManager().callEvent(new XySoulSpaceItemDepositEvent(player, item, source));
-            if (gui != null) gui.refreshIfOpen(player);
+            if (refreshGui && gui != null) gui.refreshIfOpen(player);
         }
         return result;
     }

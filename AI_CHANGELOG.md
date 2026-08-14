@@ -1,5 +1,81 @@
 # AI Changelog
 
+## 1.1.10
+
+- Added a slot `51` auto-pickup control with enabled, disabled and globally-disabled presentations; another player's admin view only permits pagination and closing.
+- Centralized permission, global-setting and per-player-setting checks across `PlayerPickupItemEvent`, the bounded nearby-entity scan and MythicMobs `ssdrops`.
+- Changed ground-item handling to deposit first and remove the entity only after a successful storage write; failed deposits leave existing entities untouched.
+- Routes failed or disabled MythicMobs `ssdrops` delivery back to the mob death location.
+- Added XyCore-backed creation for `xyitems:*`, `mythicmobs:*` and `minecraft:*` drop IDs while preserving legacy bare MythicMobs IDs.
+- Added standalone Bukkit/MythicMobs fallbacks for `minecraft:*` and `mythicmobs:*`, plus fail-closed validation for invalid amounts, non-finite chances and out-of-range probabilities.
+- Replaced per-death MythicMobs configuration traversal with an immutable rule snapshot built at startup and reload.
+- Added configurable, bounded notification coalescing keyed by item ID and actual display name, preserving quality names and colors in player messages.
+- Retired the separate MythicMobs and legacy pickup-message keys in favor of the unified `pickup.notification-*` settings; legacy files remain loadable without duplicate notices.
+- Uses the XyCore player prefix when available and the local XySoulSpace prefix as the standalone fallback.
+- Batches open-GUI refreshes per scan tick and continues to use one server-wide pickup scan task rather than per-player tasks.
+- Reload now refreshes the XyCore bridge and cached MythicMobs rules, then cancels and recreates the single scanner with the latest interval.
+- Replaced configurable-title GUI detection with a private holder session, blocked drag injection, and kept owner/page/key state scoped to each window.
+- Added revision-aware storage snapshots and serialized repository IO so a concurrent autosave cannot clear newer pickup mutations; reload now also applies the latest autosave interval.
+- Clamped range scans to 64 blocks and aligned OP behavior with command permission handling.
+- Added tests covering pickup defaults, dirty-state persistence, isolation between player storage instances and stale-save revision handling.
+- Updated version metadata, default configuration and all user/AI documentation to 1.1.10.
+
+## 1.1.9
+
+- Restored the legacy Shift-left deposit-all semantics: all matching items in player inventory slots `0..35` are deposited, rather than only the clicked stack.
+- Matches candidates through `ItemKeys.keyOf`, preserving the storage system's complete ItemStack identity and legacy internal-lore cleanup behavior.
+- Uses the current view's bottom inventory for lower-inventory click validation on Paper/Spigot 1.12.2.
+- Keeps the one-tick revalidation and per-player pending guard from 1.1.8.
+- Performs one bounded 36-slot scan and one storage/save/message/refresh sequence per Shift-left action; no repeating task was added.
+- Updated version metadata and user documentation to 1.1.9.
+
+## 1.1.8
+
+- Moved manual lower-inventory deposits out of the cancelled `InventoryClickEvent` body and into a one-tick scheduled task.
+- Added a per-player pending-deposit guard for manual GUI deposits.
+- Revalidates the clicked slot on execution with `ItemStack#isSimilar` before mutating inventory or storage.
+- Keeps deposit controls unchanged: left = 1, right = up to 64, shift-left = clicked stack.
+- Added centralized stripping of trailing Chinese full stops from `Text.sendRaw` and `Text.sendLocalRaw`.
+- Updated default config messages and version metadata to 1.1.8.
+
+## 1.1.7
+
+- Added click-to-deposit from the lower player inventory while a SoulSpace GUI is open.
+- Deposit controls: left click deposits 1, right click deposits up to 64, shift-left deposits the whole stack; shift-right is ignored.
+- Kept top inventory slots cancelled and protected; withdrawal only happens from a top slot when the cursor is empty.
+- Restored action lore display by default while keeping it isolated to GUI display copies.
+- Changed player-facing item-name fallback order so custom display names win over vanilla material names when provider identification falls back to `minecraft:*`.
+- Kept drag-to-deposit out of scope to preserve a simple and predictable interaction model.
+
+## 1.1.6
+
+- Added a generated `VanillaMaterialNames` utility with 463 Bukkit 1.12.2 base `Material` display names.
+- Switched `XySoulSpacePlugin#vanillaDisplayName` from a tiny built-in map to the generated full map.
+- Kept `messages.vanilla-names` as the highest-priority override layer.
+- Corrected several non-inventory/legacy base names for player-facing readability, including water, lava, bed, redstone components and potion variants.
+- Kept runtime behavior lightweight: one `Material.name()` lookup and one read-only `HashMap#get` per player-facing vanilla item message.
+- Did not change storage format, autosave behavior, XyCore matching, XyItems/MythicMobs ID display, or GUI safety changes from 1.1.4.
+
+## 1.1.5
+
+- Added vanilla material display-name fallback for player-facing item messages.
+- Added `messages.vanilla-names` config with configurable `Material -> display name` mappings.
+- Changed `item-name-mode: id` semantics for player messages: custom providers still show namespaced IDs, while vanilla minecraft stacks prefer configured/built-in friendly names.
+- Added `raw-id` mode for strict namespaced ID debugging.
+- Added a small built-in 1.12.2 vanilla material name map for common items, with config overrides taking precedence.
+- Kept storage format, GUI behavior, XyCore matching and autosave behavior unchanged.
+
+## 1.1.4
+
+- Restricted quick-store to PlayerInventory slots `0..35` instead of using `getContents()`, preventing armor, offhand and client-mapped equipment slots from being stored.
+- Added per-viewer GUI slot-to-storage-key mapping in `SoulSpaceGui`; withdrawal now uses the original stored template from `SoulStorage#getItem`.
+- Removed visible internal GUI lore as a withdrawal dependency and added config toggles for amount/action/key lore display.
+- Added defensive cleanup of legacy internal GUI lore before hashing and storing item templates.
+- Added `XySoulSpacePlugin#itemDisplayName` and XyCore-backed item-id display for player-facing item messages.
+- Updated command, pickup, MythicMobs bridge and shop messages to use the new item display rule.
+- Added XyItems as a soft dependency so XyCore item providers are normally registered before XySoulSpace resolves item IDs.
+- Kept the storage format, autosave behavior and API transaction model unchanged.
+
 ## 1.1.3
 
 - Split XySoulSpace chat prefix routing by message semantics.

@@ -21,6 +21,7 @@ public final class SoulStorage {
     private final Map<String, SoulItemRecord> items = new LinkedHashMap<>();
     private boolean pickupEnabled = true;
     private boolean dirty;
+    private long revision;
 
     public synchronized void deposit(ItemStack item) {
         if (item == null || item.getType().name().equals("AIR") || item.getAmount() <= 0) return;
@@ -37,7 +38,7 @@ public final class SoulStorage {
         } else {
             record.add(amount);
         }
-        dirty = true;
+        markChanged();
     }
 
     public synchronized long withdraw(String key, long amount) {
@@ -45,13 +46,18 @@ public final class SoulStorage {
         if (record == null) return 0L;
         long removed = record.remove(amount);
         if (record.getAmount() <= 0L) items.remove(key);
-        if (removed > 0L) dirty = true;
+        if (removed > 0L) markChanged();
         return removed;
     }
 
     public synchronized long getAmount(String key) {
         SoulItemRecord record = items.get(key);
         return record == null ? 0L : record.getAmount();
+    }
+
+    public synchronized ItemStack getItem(String key) {
+        SoulItemRecord record = items.get(key);
+        return record == null ? null : record.getItem();
     }
 
     public synchronized long getAmountByCostKey(String costKey) {
@@ -74,7 +80,7 @@ public final class SoulStorage {
             if (record.getAmount() <= 0L) items.remove(key);
         }
         long removed = amount - remaining;
-        if (removed > 0L) dirty = true;
+        if (removed > 0L) markChanged();
         return removed;
     }
 
@@ -103,7 +109,7 @@ public final class SoulStorage {
             }
             if (record.getAmount() <= 0L) items.remove(entry.storageKey);
         }
-        if (!planned.get().entries.isEmpty()) dirty = true;
+        if (!planned.get().entries.isEmpty()) markChanged();
         return Optional.of(planned.get().receipt);
     }
 
@@ -171,13 +177,21 @@ public final class SoulStorage {
         return copy.entrySet();
     }
 
+    public synchronized Snapshot snapshot() {
+        LinkedHashMap<String, SoulItemRecord> copy = new LinkedHashMap<>();
+        for (Map.Entry<String, SoulItemRecord> entry : items.entrySet()) {
+            copy.put(entry.getKey(), new SoulItemRecord(entry.getValue().getItem(), entry.getValue().getAmount()));
+        }
+        return new Snapshot(pickupEnabled, copy, revision);
+    }
+
     public synchronized boolean isEmpty() {
         return items.isEmpty();
     }
 
     public synchronized void clear() {
         items.clear();
-        dirty = true;
+        markChanged();
     }
 
     public synchronized boolean isPickupEnabled() {
@@ -186,7 +200,7 @@ public final class SoulStorage {
 
     public synchronized void setPickupEnabled(boolean pickupEnabled) {
         this.pickupEnabled = pickupEnabled;
-        dirty = true;
+        markChanged();
     }
 
     public synchronized boolean isDirty() {
@@ -197,8 +211,41 @@ public final class SoulStorage {
         dirty = false;
     }
 
+    public synchronized void markClean(long savedRevision) {
+        if (revision == savedRevision) dirty = false;
+    }
+
     public synchronized void markDirty() {
+        markChanged();
+    }
+
+    private void markChanged() {
         dirty = true;
+        revision++;
+    }
+
+    public static final class Snapshot {
+        private final boolean pickupEnabled;
+        private final Map<String, SoulItemRecord> items;
+        private final long revision;
+
+        private Snapshot(boolean pickupEnabled, Map<String, SoulItemRecord> items, long revision) {
+            this.pickupEnabled = pickupEnabled;
+            this.items = items;
+            this.revision = revision;
+        }
+
+        public boolean isPickupEnabled() {
+            return pickupEnabled;
+        }
+
+        public Collection<Map.Entry<String, SoulItemRecord>> entries() {
+            return items.entrySet();
+        }
+
+        public long getRevision() {
+            return revision;
+        }
     }
 
     private boolean matchesCost(ItemStack item, String costKey) {

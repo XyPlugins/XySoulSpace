@@ -43,7 +43,7 @@ public final class Text {
 
     public static void sendRaw(CommandSender sender, FileConfiguration config, String message, String... replacements) {
         if (sender == null) return;
-        sender.sendMessage(color(prefix(sender, config) + replace(message, replacements)));
+        sender.sendMessage(stripTrailingChinesePeriod(color(prefix(sender, config) + replace(message, replacements))));
     }
 
     public static void sendLocal(CommandSender sender, FileConfiguration config, String key, String... replacements) {
@@ -53,7 +53,7 @@ public final class Text {
 
     public static void sendLocalRaw(CommandSender sender, FileConfiguration config, String message, String... replacements) {
         if (sender == null) return;
-        sender.sendMessage(color(localPrefix(config) + replace(message, replacements)));
+        sender.sendMessage(stripTrailingChinesePeriod(color(localPrefix(config) + replace(message, replacements))));
     }
 
     public static String prefix(CommandSender sender, FileConfiguration config) {
@@ -80,6 +80,14 @@ public final class Text {
         }
     }
 
+    private static String stripTrailingChinesePeriod(String value) {
+        if (value == null) return "";
+        String result = value;
+        while (result.endsWith("。")) {
+            result = result.substring(0, result.length() - 1);
+        }
+        return result;
+    }
     public static String replace(String value, String... replacements) {
         String result = value == null ? "" : value;
         if (replacements == null) return result;

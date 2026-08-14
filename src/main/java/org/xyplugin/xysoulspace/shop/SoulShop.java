@@ -95,7 +95,7 @@ public final class SoulShop {
         ItemStack result = selected.getResult();
         long accepted = Inventorys.addItems(player.getInventory(), result, (long) result.getAmount() * multiplier);
         service.save(player.getUniqueId());
-        Text.sendRaw(player, plugin.getConfig(), "&a购买成功，获得 " + accepted + " 个 " + Text.itemName(result));
+        Text.sendRaw(player, plugin.getConfig(), "&a购买成功，获得 " + accepted + " 个 " + plugin.itemDisplayName(result));
         return true;
     }
 

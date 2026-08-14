@@ -1,6 +1,7 @@
 package org.xyplugin.xysoulspace;
 
 import org.bukkit.Bukkit;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.xyplugin.xysoulspace.api.XySoulSpaceApi;
 import org.xyplugin.xysoulspace.command.XySoulSpaceCommand;
@@ -13,6 +14,8 @@ import org.xyplugin.xysoulspace.listener.AutoPickupListener;
 import org.xyplugin.xysoulspace.listener.PlayerDataListener;
 import org.xyplugin.xysoulspace.shop.ShopListener;
 import org.xyplugin.xysoulspace.shop.SoulShop;
+import org.xyplugin.xysoulspace.util.Text;
+import org.xyplugin.xysoulspace.util.VanillaMaterialNames;
 
 import java.io.File;
 
@@ -26,6 +29,7 @@ public final class XySoulSpacePlugin extends JavaPlugin {
     private DecomposeService decomposeService;
     private XyCoreBridge xyCoreBridge;
     private MythicMobsBridge mythicMobsBridge;
+    private AutoPickupListener autoPickup;
     private int autosaveTask = -1;
 
     @Override
@@ -37,6 +41,7 @@ public final class XySoulSpacePlugin extends JavaPlugin {
         xyCoreBridge = new XyCoreBridge(this);
         xyCoreBridge.refresh();
         service = new SoulSpaceService(this, xyCoreBridge);
+        autoPickup = new AutoPickupListener(this, service);
         gui = new SoulSpaceGui(this, service);
         service.setGui(gui);
         decomposeService = new DecomposeService(this, service);
@@ -45,7 +50,6 @@ public final class XySoulSpacePlugin extends JavaPlugin {
         mythicMobsBridge = new MythicMobsBridge(this);
         mythicMobsBridge.registerIfAvailable();
 
-        AutoPickupListener autoPickup = new AutoPickupListener(this, service);
         Bukkit.getPluginManager().registerEvents(autoPickup, this);
         Bukkit.getPluginManager().registerEvents(new PlayerDataListener(service), this);
         Bukkit.getPluginManager().registerEvents(new ShopListener(soulShop), this);
@@ -61,7 +65,9 @@ public final class XySoulSpacePlugin extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (autoPickup != null) autoPickup.stopTask();
         if (autosaveTask != -1) Bukkit.getScheduler().cancelTask(autosaveTask);
+        autosaveTask = -1;
         if (service != null) service.saveAll();
         instance = null;
     }
@@ -72,12 +78,21 @@ public final class XySoulSpacePlugin extends JavaPlugin {
         itemLibrary.reload();
         soulShop.reload();
         xyCoreBridge.refresh();
+        if (mythicMobsBridge != null) mythicMobsBridge.reload();
+        if (autoPickup != null) autoPickup.restartTask();
+        restartAutosave();
     }
 
     private void startAutosave() {
         long interval = Math.max(200L, getConfig().getLong("storage.autosave-interval-ticks", 1200L));
         autosaveTask = Bukkit.getScheduler().runTaskTimerAsynchronously(this,
                 () -> service.saveDirty(), interval, interval).getTaskId();
+    }
+
+    private void restartAutosave() {
+        if (autosaveTask != -1) Bukkit.getScheduler().cancelTask(autosaveTask);
+        autosaveTask = -1;
+        startAutosave();
     }
 
     private void saveShopConfig() {
@@ -121,5 +136,71 @@ public final class XySoulSpacePlugin extends JavaPlugin {
 
     public SoulSpaceService getService() {
         return service;
+    }
+
+    public AutoPickupListener getAutoPickup() {
+        return autoPickup;
+    }
+
+    public XyCoreBridge getXyCoreBridge() {
+        return xyCoreBridge;
+    }
+
+    public String itemDisplayName(ItemStack item) {
+        if (item == null) return "";
+        String mode = getConfig().getString("messages.item-name-mode", "id").trim().toLowerCase();
+        String itemId = itemId(item);
+        if ("raw-id".equals(mode)) return itemId;
+
+        if ("name".equals(mode) || "display".equals(mode)) {
+            String customName = customDisplayName(item);
+            if (!customName.isEmpty()) return customName;
+            String vanillaName = vanillaDisplayName(item);
+            if (!vanillaName.isEmpty()) return vanillaName;
+            return itemId;
+        }
+
+        if ("id".equals(mode) && itemId.toLowerCase().startsWith("minecraft:")) {
+            String customName = customDisplayName(item);
+            if (!customName.isEmpty()) return customName;
+            String vanillaName = vanillaDisplayName(item);
+            if (!vanillaName.isEmpty()) return vanillaName;
+        }
+        return itemId;
+    }
+
+    public String itemId(ItemStack item) {
+        if (xyCoreBridge != null && xyCoreBridge.isAvailable()) {
+            String id = xyCoreBridge.displayId(item);
+            if (id != null && !id.trim().isEmpty()) return id;
+        }
+        return "minecraft:" + item.getType().name();
+    }
+
+    public String itemFriendlyName(ItemStack item) {
+        if (item == null) return "";
+        String customName = customDisplayName(item);
+        if (!customName.isEmpty()) return customName;
+        String itemId = itemId(item);
+        if (!itemId.toLowerCase().startsWith("minecraft:")) return itemId;
+        String vanillaName = vanillaDisplayName(item);
+        if (!vanillaName.isEmpty()) return vanillaName;
+        return itemId;
+    }
+
+    private String customDisplayName(ItemStack item) {
+        try {
+            return item.hasItemMeta() && item.getItemMeta().hasDisplayName() ? Text.itemName(item) : "";
+        } catch (RuntimeException ignored) {
+            return "";
+        }
+    }
+
+    private String vanillaDisplayName(ItemStack item) {
+        if (item == null || item.getType() == null) return "";
+        String material = item.getType().name();
+        String configured = getConfig().getString("messages.vanilla-names." + material, "");
+        if (configured != null && !configured.trim().isEmpty()) return Text.color(configured);
+        return VanillaMaterialNames.get(material);
     }
 }

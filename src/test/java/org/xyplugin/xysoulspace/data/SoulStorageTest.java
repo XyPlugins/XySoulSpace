@@ -15,6 +15,62 @@ import org.xyplugin.xysoulspace.api.SoulSpaceWithdrawal;
 
 public class SoulStorageTest {
     @Test
+    public void pickupSettingDefaultsToEnabledAndParticipatesInDirtyTracking() {
+        SoulStorage storage = new SoulStorage();
+
+        assertTrue(storage.isPickupEnabled());
+        assertFalse(storage.isDirty());
+
+        storage.setPickupEnabled(false);
+        assertFalse(storage.isPickupEnabled());
+        assertTrue(storage.isDirty());
+
+        storage.markClean();
+        assertFalse(storage.isDirty());
+        assertFalse(storage.isPickupEnabled());
+
+        storage.setPickupEnabled(true);
+        assertTrue(storage.isPickupEnabled());
+        assertTrue(storage.isDirty());
+    }
+
+    @Test
+    public void loadingPickupSettingCanBeMarkedCleanWithoutChangingItsValue() {
+        SoulStorage storage = new SoulStorage();
+
+        storage.setPickupEnabled(false);
+        storage.markClean();
+
+        assertFalse(storage.isPickupEnabled());
+        assertFalse(storage.isDirty());
+    }
+
+    @Test
+    public void pickupSettingIsIsolatedBetweenPlayerStorageInstances() {
+        SoulStorage firstPlayer = new SoulStorage();
+        SoulStorage secondPlayer = new SoulStorage();
+
+        firstPlayer.setPickupEnabled(false);
+
+        assertFalse(firstPlayer.isPickupEnabled());
+        assertTrue(secondPlayer.isPickupEnabled());
+        assertTrue(firstPlayer.isDirty());
+        assertFalse(secondPlayer.isDirty());
+    }
+
+    @Test
+    public void savingAnOlderSnapshotDoesNotClearNewerChanges() {
+        SoulStorage storage = new SoulStorage();
+        storage.setPickupEnabled(false);
+        SoulStorage.Snapshot snapshot = storage.snapshot();
+
+        storage.setPickupEnabled(true);
+        storage.markClean(snapshot.getRevision());
+
+        assertTrue(storage.isDirty());
+    }
+
+    @Test
     public void batchWithdrawalIsAllOrNothing() throws Exception {
         SoulStorage storage = new SoulStorage();
         Field itemsField = SoulStorage.class.getDeclaredField("items");

@@ -125,19 +125,18 @@ public final class XySoulSpaceCommand implements CommandExecutor {
         service.save(player.getUniqueId());
         Text.send(player, plugin.getConfig(), "stored",
                 "%amount%", String.valueOf(hand.getAmount()),
-                "%item%", Text.itemName(hand));
+                "%item%", plugin.itemDisplayName(hand));
     }
 
     private void pickup(Player player, String[] args) {
-        SoulStorage storage = service.getStorage(player.getUniqueId());
         if (args.length < 2) {
-            Text.sendRaw(player, plugin.getConfig(), "&7个人自动拾取: " + (storage.isPickupEnabled() ? "&a开启" : "&c关闭"));
+            Text.sendRaw(player, plugin.getConfig(), "&7个人自动拾取: "
+                    + (plugin.getAutoPickup().isPlayerEnabled(player) ? "&a开启" : "&c关闭"));
             return;
         }
         boolean enabled = args[1].equalsIgnoreCase("on") || args[1].equalsIgnoreCase("true");
-        storage.setPickupEnabled(enabled);
-        service.save(player.getUniqueId());
-        Text.send(player, plugin.getConfig(), enabled ? "pickup-on" : "pickup-off");
+        plugin.getAutoPickup().setPlayerEnabled(player, enabled);
+        plugin.getGui().refreshIfOpen(player);
     }
 
     private void adminOpen(Player player, String[] args) {
@@ -199,7 +198,7 @@ public final class XySoulSpaceCommand implements CommandExecutor {
             return true;
         }
         plugin.getSoulShop().reload();
-        Text.sendLocalRaw(sender, plugin.getConfig(), "&a灵魂商店配置已重载。");
+        Text.sendLocalRaw(sender, plugin.getConfig(), "&a灵魂商店配置已重载");
         return true;
     }
 

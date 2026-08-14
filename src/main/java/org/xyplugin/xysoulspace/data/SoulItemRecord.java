@@ -1,13 +1,14 @@
 package org.xyplugin.xysoulspace.data;
 
 import org.bukkit.inventory.ItemStack;
+import org.xyplugin.xysoulspace.util.ItemKeys;
 
 public final class SoulItemRecord {
     private final ItemStack item;
     private long amount;
 
     public SoulItemRecord(ItemStack item, long amount) {
-        ItemStack copy = item.clone();
+        ItemStack copy = ItemKeys.cleanInternalLore(item);
         copy.setAmount(1);
         this.item = copy;
         this.amount = Math.max(0L, amount);

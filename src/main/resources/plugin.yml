@@ -1,10 +1,10 @@
 name: XySoulSpace
-version: '1.1.3'
+version: '1.1.10'
 main: org.xyplugin.xysoulspace.XySoulSpacePlugin
 api-version: '1.12'
 author: XyPlugin
 description: Xy series soul storage, local item bank, pickup, decomposition and shop bridge.
-softdepend: [XyCore, MythicMobs, Vault, PlayerPoints]
+softdepend: [XyCore, XyItems, MythicMobs, Vault, PlayerPoints]
 
 commands:
   xyss:

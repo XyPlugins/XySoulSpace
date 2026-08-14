@@ -1,27 +1,37 @@
 package org.xyplugin.xysoulspace.integration;
 
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Event;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.EventExecutor;
+import org.bukkit.plugin.Plugin;
 import org.xyplugin.xysoulspace.XySoulSpacePlugin;
-import org.xyplugin.xysoulspace.util.Text;
 
 import java.io.File;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
+import java.util.HashSet;
+import java.util.Set;
 
 public final class MythicMobsBridge {
     private final XySoulSpacePlugin plugin;
     private final Random random = new Random();
+    private final Set<String> warnedMissingItems = new HashSet<>();
+    private volatile Map<String, List<DropRule>> rulesByMob = Collections.emptyMap();
     private boolean registered;
 
     public MythicMobsBridge(XySoulSpacePlugin plugin) {
@@ -31,6 +41,20 @@ public final class MythicMobsBridge {
     @SuppressWarnings("unchecked")
     public void registerIfAvailable() {
         if (registered || !plugin.getConfig().getBoolean("integrations.mythicmobs.enabled", true)) return;
+        reloadRules();
+        registerListener();
+    }
+
+    public void reload() {
+        reloadRules();
+        if (!registered && plugin.getConfig().getBoolean("integrations.mythicmobs.enabled", true)) {
+            registerListener();
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void registerListener() {
+        if (registered) return;
         try {
             Class<?> rawEventClass = Class.forName("io.lumine.xikage.mythicmobs.api.bukkit.events.MythicMobDeathEvent");
             Class<? extends Event> eventClass = (Class<? extends Event>) rawEventClass;
@@ -47,18 +71,23 @@ public final class MythicMobsBridge {
     }
 
     private void handleDeath(Event event) {
+        if (!plugin.getConfig().getBoolean("integrations.mythicmobs.enabled", true)) return;
         Player killer = readKiller(event);
-        if (killer == null || !killer.hasPermission("xysoulspace.use")) return;
+        if (killer == null) return;
         String mobId = readMobId(event);
         if (mobId.isEmpty()) return;
-        for (DropRule rule : loadRules(mobId)) {
-            if (random.nextDouble() > rule.chance) continue;
-            ItemStack item = plugin.getItemLibrary().get(rule.itemId);
-            if (item == null) item = generateMythicItem(rule.itemId, rule.amount);
-            if (item == null) continue;
-            item.setAmount(rule.amount);
-            plugin.getService().deposit(killer, item, "mythicmobs");
-            sendMessage(killer, item);
+        List<DropRule> rules = rulesByMob.get(mobId.toLowerCase(Locale.ENGLISH));
+        if (rules == null || rules.isEmpty()) return;
+        for (DropRule rule : rules) {
+            if (random.nextDouble() >= rule.chance) continue;
+            ItemStack item = createDrop(rule);
+            if (item == null) {
+                warnMissingItem(rule.itemId);
+                continue;
+            }
+            if (plugin.getAutoPickup() == null || !plugin.getAutoPickup().depositDirect(killer, item)) {
+                dropAtDeath(event, killer, item);
+            }
         }
     }
 
@@ -73,37 +102,125 @@ public final class MythicMobsBridge {
     private String readMobId(Event event) {
         Object mob = invoke(event, "getMob");
         Object type = invoke(mob, "getType");
+        if (type == null) type = invoke(event, "getMobType");
         Object id = invoke(type, "getInternalName");
         if (id == null) id = invoke(type, "getId");
         if (id == null) id = invoke(mob, "getInternalName");
         return id == null ? "" : String.valueOf(id);
     }
 
-    private List<DropRule> loadRules(String mobId) {
-        List<DropRule> rules = new ArrayList<>();
-        File mobs = new File("plugins/MythicMobs/Mobs");
-        collectRules(mobs, mobId, rules);
-        return rules;
+    private void reloadRules() {
+        warnedMissingItems.clear();
+        if (!plugin.getConfig().getBoolean("integrations.mythicmobs.enabled", true)) {
+            rulesByMob = Collections.emptyMap();
+            return;
+        }
+        Map<String, List<DropRule>> loaded = new LinkedHashMap<>();
+        collectRules(mythicMobsDirectory(), loaded);
+        Map<String, List<DropRule>> snapshot = new LinkedHashMap<>();
+        int ruleCount = 0;
+        for (Map.Entry<String, List<DropRule>> entry : loaded.entrySet()) {
+            if (entry.getValue().isEmpty()) continue;
+            List<DropRule> rules = Collections.unmodifiableList(new ArrayList<>(entry.getValue()));
+            snapshot.put(entry.getKey(), rules);
+            ruleCount += rules.size();
+        }
+        rulesByMob = Collections.unmodifiableMap(snapshot);
+        plugin.getLogger().info("已缓存 MythicMobs ssdrops 规则: " + snapshot.size()
+                + " 个怪物，" + ruleCount + " 条掉落。");
     }
 
-    private void collectRules(File file, String mobId, List<DropRule> rules) {
+    private File mythicMobsDirectory() {
+        Plugin mythicMobs = Bukkit.getPluginManager().getPlugin("MythicMobs");
+        File dataFolder = mythicMobs == null ? new File("plugins/MythicMobs") : mythicMobs.getDataFolder();
+        return new File(dataFolder, "Mobs");
+    }
+
+    private void collectRules(File file, Map<String, List<DropRule>> rulesByMob) {
         if (file == null || !file.exists()) return;
         if (file.isDirectory()) {
             File[] files = file.listFiles();
             if (files == null) return;
-            for (File child : files) collectRules(child, mobId, rules);
+            for (File child : files) collectRules(child, rulesByMob);
             return;
         }
         if (!file.getName().toLowerCase(Locale.ENGLISH).endsWith(".yml")) return;
         YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
-        ConfigurationSection section = yaml.getConfigurationSection(mobId);
-        if (section == null) return;
-        for (String path : new String[]{"ssdrops", "SsDrops", "soulspace-drops", "SoulSpaceDrops"}) {
-            for (String line : section.getStringList(path)) {
-                DropRule rule = DropRule.parse(line);
-                if (rule != null) rules.add(rule);
+        for (String mobId : yaml.getKeys(false)) {
+            ConfigurationSection section = yaml.getConfigurationSection(mobId);
+            if (section == null) continue;
+            String key = mobId.toLowerCase(Locale.ENGLISH);
+            List<DropRule> rules = rulesByMob.get(key);
+            for (String path : new String[]{"ssdrops", "SsDrops", "soulspace-drops", "SoulSpaceDrops"}) {
+                for (String line : section.getStringList(path)) {
+                    DropRule rule = DropRule.parse(line);
+                    if (rule == null) {
+                        plugin.getLogger().warning("忽略无效 MythicMobs ssdrops 规则 "
+                                + file.getPath() + " -> " + mobId + ": " + line);
+                        continue;
+                    }
+                    if (rules == null) {
+                        rules = new ArrayList<>();
+                        rulesByMob.put(key, rules);
+                    }
+                    rules.add(rule);
+                }
             }
         }
+    }
+
+    private ItemStack createDrop(DropRule rule) {
+        String itemId = rule.itemId.trim();
+        int separator = itemId.indexOf(':');
+        ItemStack item = null;
+        if (separator > 0 && separator < itemId.length() - 1) {
+            item = plugin.getXyCoreBridge().createItem(itemId, rule.amount);
+            if (item == null) item = plugin.getItemLibrary().get(itemId);
+            if (item == null && "mythicmobs".equalsIgnoreCase(itemId.substring(0, separator))) {
+                item = generateMythicItem(itemId.substring(separator + 1), rule.amount);
+            } else if (item == null && "minecraft".equalsIgnoreCase(itemId.substring(0, separator))) {
+                Material material = Material.matchMaterial(itemId.substring(separator + 1));
+                if (material != null && material != Material.AIR) item = new ItemStack(material, rule.amount);
+            }
+        } else {
+            item = plugin.getItemLibrary().get(itemId);
+            if (item == null) item = generateMythicItem(itemId, rule.amount);
+        }
+        if (item != null) item.setAmount(rule.amount);
+        return item;
+    }
+
+    private void warnMissingItem(String itemId) {
+        String normalized = itemId == null ? "" : itemId.trim().toLowerCase(Locale.ENGLISH);
+        if (!warnedMissingItems.add(normalized)) return;
+        plugin.getLogger().warning("无法生成 MythicMobs ssdrops 物品: " + itemId
+                + "；请检查完整物品 ID 及对应物品库是否已加载。");
+    }
+
+    @SuppressWarnings("unchecked")
+    private void dropAtDeath(Event event, Player killer, ItemStack item) {
+        Location location = readDeathLocation(event);
+        if (location != null && location.getWorld() != null) {
+            location.getWorld().dropItemNaturally(location, item.clone());
+            return;
+        }
+        Object drops = invoke(event, "getDrops");
+        if (drops instanceof List) {
+            try {
+                ((List<Object>) drops).add(item.clone());
+                return;
+            } catch (RuntimeException ignored) {
+            }
+        }
+        if (killer.getWorld() != null) killer.getWorld().dropItemNaturally(killer.getLocation(), item.clone());
+    }
+
+    private Location readDeathLocation(Event event) {
+        Object entityValue = invoke(event, "getEntity");
+        if (!(entityValue instanceof Entity)) entityValue = invoke(entityValue, "getBukkitEntity");
+        if (entityValue instanceof Entity) return ((Entity) entityValue).getLocation();
+        Object location = invoke(entityValue, "getLocation");
+        return location instanceof Location ? (Location) location : null;
     }
 
     private ItemStack generateMythicItem(String itemId, int amount) {
@@ -148,14 +265,6 @@ public final class MythicMobsBridge {
         }
     }
 
-    private void sendMessage(Player player, ItemStack item) {
-        String template = plugin.getConfig().getString("integrations.mythicmobs.pickup-message", "");
-        if (template == null || template.isEmpty()) return;
-        Text.sendRaw(player, plugin.getConfig(), template,
-                "%amount%", String.valueOf(item.getAmount()),
-                "%item%", Text.itemName(item));
-    }
-
     private static final class DropRule {
         private final String itemId;
         private final int amount;
@@ -170,27 +279,33 @@ public final class MythicMobsBridge {
         private static DropRule parse(String line) {
             if (line == null || line.trim().isEmpty()) return null;
             String[] parts = line.trim().split("[\\s,;]+");
+            if (parts.length > 3) return null;
             String id = parts[0];
-            int amount = parts.length > 1 ? parseInt(parts[1], 1) : 1;
-            double chance = parts.length > 2 ? parseChance(parts[2]) : 1.0D;
+            Integer amount = parts.length > 1 ? parseInt(parts[1]) : Integer.valueOf(1);
+            Double chance = parts.length > 2 ? parseChance(parts[2]) : Double.valueOf(1.0D);
+            if (amount == null || chance == null) return null;
             return new DropRule(id, amount, chance);
         }
 
-        private static int parseInt(String value, int fallback) {
+        private static Integer parseInt(String value) {
             try {
-                return Integer.parseInt(value);
+                int parsed = Integer.parseInt(value);
+                return parsed > 0 ? parsed : null;
             } catch (NumberFormatException ignored) {
-                return fallback;
+                return null;
             }
         }
 
-        private static double parseChance(String value) {
+        private static Double parseChance(String value) {
             try {
-                String normalized = value.endsWith("%") ? value.substring(0, value.length() - 1) : value;
+                boolean percent = value.endsWith("%");
+                String normalized = percent ? value.substring(0, value.length() - 1) : value;
                 double parsed = Double.parseDouble(normalized);
-                return value.endsWith("%") ? parsed / 100.0D : parsed;
+                if (Double.isNaN(parsed) || Double.isInfinite(parsed)) return null;
+                if (percent) return parsed >= 0.0D && parsed <= 100.0D ? parsed / 100.0D : null;
+                return parsed >= 0.0D && parsed <= 1.0D ? parsed : null;
             } catch (NumberFormatException ignored) {
-                return 1.0D;
+                return null;
             }
         }
     }
