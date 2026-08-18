@@ -1,5 +1,16 @@
 # XySoulSpace 更新说明
 
+## 1.1.12 - 2026-08-19
+
+- 自动拾取现在仅处理 MythicMobs `MythicMobDeathEvent` 提供的最终掉落清单与既有 `ssdrops`。
+- 删除普通 `EntityDeathEvent` 与 `ItemSpawnEvent` 掉落关联，不再扫描玩家附近的普通地面物品。
+- 玩家丢弃物、普通生物掉落、自然生成物品和其它无归属Item实体继续使用原版拾取逻辑。
+- `PlayerPickupItemEvent` 只对已登记的MM击杀归属实体执行保护或入库，避免误接管无关物品。
+- 保留MM掉落约0.5秒展示、击杀者归属保护、入库失败保留、每tick处理预算、消息合并及完整ItemStack/NBT。
+- 运行时仅保留一个全服共享的到期归属队列，不创建逐玩家或逐掉落任务。
+- 默认配置删除已停用的 `pickup.range` 与 `pickup.scan-interval-ticks`；旧服配置中的同名键会被忽略。
+- 版本号更新为 `1.1.12`，同步更新默认配置、README、更新说明和AI记录。
+
 ## 1.1.11 - 2026-08-15
 
 - 修复灵魂空间取出提示将带自定义Name的XyItems物品显示成 `xyitems:id` 的问题。

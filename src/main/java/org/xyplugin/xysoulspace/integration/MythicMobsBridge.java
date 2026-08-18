@@ -60,7 +60,7 @@ public final class MythicMobsBridge {
             Class<? extends Event> eventClass = (Class<? extends Event>) rawEventClass;
             Listener listener = new Listener() {};
             EventExecutor executor = (ignored, event) -> handleDeath(event);
-            Bukkit.getPluginManager().registerEvent(eventClass, listener, EventPriority.NORMAL, executor, plugin);
+            Bukkit.getPluginManager().registerEvent(eventClass, listener, EventPriority.HIGHEST, executor, plugin);
             registered = true;
             plugin.getLogger().info("已注册 MythicMobs 灵魂掉落桥接。");
         } catch (ClassNotFoundException ignored) {
@@ -74,11 +74,13 @@ public final class MythicMobsBridge {
         if (!plugin.getConfig().getBoolean("integrations.mythicmobs.enabled", true)) return;
         Player killer = readKiller(event);
         if (killer == null) return;
+        Location deathLocation = readDeathLocation(event);
+        captureEventDrops(event, killer, deathLocation);
+
         String mobId = readMobId(event);
         if (mobId.isEmpty()) return;
         List<DropRule> rules = rulesByMob.get(mobId.toLowerCase(Locale.ENGLISH));
         if (rules == null || rules.isEmpty()) return;
-        Location deathLocation = readDeathLocation(event);
         for (DropRule rule : rules) {
             if (random.nextDouble() >= rule.chance) continue;
             ItemStack item = createDrop(rule);
@@ -89,6 +91,56 @@ public final class MythicMobsBridge {
             if (plugin.getAutoPickup() == null
                     || !plugin.getAutoPickup().spawnOwnedDrop(killer, deathLocation, item)) {
                 dropAtDeath(event, killer, item);
+            }
+        }
+    }
+
+    private void captureEventDrops(Event event, Player killer, Location deathLocation) {
+        if (plugin.getAutoPickup() == null || !plugin.getAutoPickup().canAutoPickup(killer)
+                || deathLocation == null || deathLocation.getWorld() == null) {
+            return;
+        }
+        List<ItemStack> drops = readEventDrops(event);
+        if (drops.isEmpty() || !writeEventDrops(event, Collections.emptyList())) return;
+
+        List<ItemStack> retained = new ArrayList<>();
+        for (ItemStack drop : drops) {
+            if (drop == null || drop.getType() == Material.AIR || drop.getAmount() <= 0) continue;
+            if (!plugin.getAutoPickup().spawnOwnedDrop(killer, deathLocation, drop)) {
+                retained.add(drop);
+            }
+        }
+        if (!retained.isEmpty() && !writeEventDrops(event, retained)) {
+            for (ItemStack drop : retained) dropAtDeath(event, killer, drop);
+        }
+    }
+
+    private List<ItemStack> readEventDrops(Event event) {
+        Object value = invoke(event, "getDrops");
+        if (!(value instanceof List)) return Collections.emptyList();
+        List<?> rawDrops = (List<?>) value;
+        List<ItemStack> drops = new ArrayList<>(rawDrops.size());
+        for (Object rawDrop : rawDrops) {
+            if (rawDrop instanceof ItemStack) drops.add((ItemStack) rawDrop);
+        }
+        return drops;
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean writeEventDrops(Event event, List<ItemStack> drops) {
+        try {
+            event.getClass().getMethod("setDrops", List.class).invoke(event, new ArrayList<>(drops));
+            return true;
+        } catch (Exception ignored) {
+            Object value = invoke(event, "getDrops");
+            if (!(value instanceof List)) return false;
+            try {
+                List<Object> current = (List<Object>) value;
+                current.clear();
+                current.addAll(drops);
+                return true;
+            } catch (RuntimeException failure) {
+                return false;
             }
         }
     }

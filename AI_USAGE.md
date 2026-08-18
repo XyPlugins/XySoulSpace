@@ -1,5 +1,27 @@
 # AI 使用记录
 
+## 1.1.12
+
+本次修改由AI根据服主确认的“自动拾取只处理MM怪物死亡掉落，其它地面物品不检测”边界辅助完成。
+
+已确认的实现边界：
+
+- 自动拾取入口收窄为 MythicMobs `MythicMobDeathEvent#getDrops()` 和现有 `ssdrops`，不再监听普通Bukkit生物死亡来推断归属。
+- 移除 `ItemSpawnEvent`关联与在线玩家附近实体扫描；普通怪物掉落、玩家丢弃物、自然生成物品及其它无归属地面物品不会被插件存入。
+- MM事件的最终掉落清单会先从事件中安全取出，再通过既有 `spawnOwnedDrop` 路径生成带击杀者内存归属的地面实体。
+- 任一MM事件掉落无法进入归属流程时会保留或恢复为正常地面掉落，不会静默丢失。
+- `PlayerPickupItemEvent` 对没有归属记录的Item立即返回，完全交给原版及其它插件处理。
+- 保留击杀者专属保护、默认10 tick展示、每tick默认32件上限、提示合并、成功入库后删除以及失败时保留实体。
+- MM和XyItems的真实ItemStack直接克隆传递，名称、Lore、品质、随机属性与NBT不做重建。
+- 运行时仅使用一个全服共享的每tick到期队列，不存在范围扫描、逐玩家任务或逐物品定时任务。
+- 旧配置中的 `pickup.range` 与 `pickup.scan-interval-ticks` 不再读取，新默认配置已删除这两个键。
+
+验证记录：
+
+- `gradlew.bat clean test build --no-daemon` 已通过，共16项测试，失败0、错误0、跳过0。
+- 已核对 `XySoulSpace-1.1.12.jar` 内 `plugin.yml` 版本与默认配置；主类字节码为Java 8（major 52），默认包不含范围扫描配置键。
+- 真实服务器仍需验证MM普通Drops、`ssdrops`、玩家开关关闭、击杀者离线和仓库拒绝写入场景。
+
 ## 1.1.11
 
 本次修改由AI根据服主实测反馈的“取出时显示Name又变成xyitems完整ID”以及“玩家A击杀后离开，附近玩家B自动拾取A的掉落”两个问题辅助完成。

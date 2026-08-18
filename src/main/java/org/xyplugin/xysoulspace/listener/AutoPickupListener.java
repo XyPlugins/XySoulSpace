@@ -3,17 +3,14 @@ package org.xyplugin.xysoulspace.listener;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
-import org.bukkit.entity.Entity;
 import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.entity.ItemDespawnEvent;
 import org.bukkit.event.entity.ItemMergeEvent;
-import org.bukkit.event.entity.ItemSpawnEvent;
 import org.bukkit.event.inventory.InventoryPickupItemEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.inventory.ItemStack;
@@ -38,10 +35,8 @@ public final class AutoPickupListener implements Listener {
     private final DropOwnershipTracker<Item> dropOwnership = new DropOwnershipTracker<>();
     private final Map<UUID, LinkedHashMap<String, PendingNotification>> pendingNotifications = new HashMap<>();
     private final Set<UUID> pendingGuiRefreshes = new HashSet<>();
-    private int scanTaskId = -1;
     private int ownedDropTaskId = -1;
     private long pickupClockTick;
-    private int suppressedSpawnDepth;
     private long mobDropDelayTicks = 10L;
     private int maxOwnedPickupsPerTick = 32;
 
@@ -60,9 +55,6 @@ public final class AutoPickupListener implements Listener {
                 plugin.getConfig().getLong("pickup.mob-drop-delay-ticks", 10L)));
         maxOwnedPickupsPerTick = Math.max(1, Math.min(512,
                 plugin.getConfig().getInt("pickup.max-owned-pickups-per-tick", 32)));
-        long interval = Math.max(1L, plugin.getConfig().getLong("pickup.scan-interval-ticks", 10L));
-        scanTaskId = Bukkit.getScheduler().runTaskTimer(plugin, this::tickScan,
-                interval, interval).getTaskId();
         ownedDropTaskId = Bukkit.getScheduler().runTaskTimer(plugin, this::tickOwnedDrops,
                 1L, 1L).getTaskId();
     }
@@ -78,37 +70,8 @@ public final class AutoPickupListener implements Listener {
     }
 
     private void cancelTasks() {
-        if (scanTaskId != -1) Bukkit.getScheduler().cancelTask(scanTaskId);
         if (ownedDropTaskId != -1) Bukkit.getScheduler().cancelTask(ownedDropTaskId);
-        scanTaskId = -1;
         ownedDropTaskId = -1;
-    }
-
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onMobDeath(EntityDeathEvent event) {
-        if (event.getEntity() instanceof Player) return;
-        Player killer = event.getEntity().getKiller();
-        if (!canAutoPickup(killer)) return;
-        Location location = event.getEntity().getLocation();
-        if (location.getWorld() == null) return;
-        dropOwnership.recordDeath(location.getWorld().getUID(),
-                location.getX(), location.getY(), location.getZ(), killer.getUniqueId(),
-                event.getDrops(), System.nanoTime());
-    }
-
-    @EventHandler(priority = EventPriority.LOWEST)
-    public void onItemSpawn(ItemSpawnEvent event) {
-        if (suppressedSpawnDepth > 0) return;
-        Item item = event.getEntity();
-        Location location = item.getLocation();
-        if (location.getWorld() == null) return;
-        long delay = mobDropDelayTicks();
-        DropOwnershipTracker.OwnedDrop<Item> owned = dropOwnership.matchSpawn(
-                item.getUniqueId(), location.getWorld().getUID(),
-                location.getX(), location.getY(), location.getZ(), item.getItemStack(), item,
-                System.nanoTime(), pickupClockTick + delay,
-                pickupClockTick + Math.max(delay, MAX_OWNER_PROTECTION_TICKS));
-        if (owned != null) item.setPickupDelay((int) delay);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -141,13 +104,15 @@ public final class AutoPickupListener implements Listener {
         Player player = event.getPlayer();
         Item item = event.getItem();
         DropOwnershipTracker.OwnedDrop<Item> owned = dropOwnership.get(item.getUniqueId());
-        if (owned != null && !owned.getOwnerId().equals(player.getUniqueId())) {
+        if (owned == null) return;
+        if (!owned.getOwnerId().equals(player.getUniqueId())) {
             Player owner = Bukkit.getPlayer(owned.getOwnerId());
             if (owner != null && canAutoPickup(owner)) {
                 event.setCancelled(true);
                 return;
             }
             dropOwnership.remove(item.getUniqueId());
+            return;
         }
         if (!canAutoPickup(player)) return;
         if (depositGroundItem(player, item)) {
@@ -206,12 +171,9 @@ public final class AutoPickupListener implements Listener {
         }
         Item item;
         try {
-            suppressedSpawnDepth++;
             item = location.getWorld().dropItemNaturally(location, stack.clone());
         } catch (RuntimeException failure) {
             return false;
-        } finally {
-            suppressedSpawnDepth--;
         }
         // The spawn event may be cancelled or consumed by another drop plugin. The attempt is
         // still handled; retrying would duplicate drops for plugins that merge during spawn.
@@ -222,12 +184,6 @@ public final class AutoPickupListener implements Listener {
                 pickupClockTick + delay,
                 pickupClockTick + Math.max(delay, MAX_OWNER_PROTECTION_TICKS));
         return true;
-    }
-
-    private void tickScan() {
-        scanOnlinePlayers();
-        flushGuiRefreshes();
-        flushReadyNotifications(System.currentTimeMillis());
     }
 
     private void tickOwnedDrops() {
@@ -259,22 +215,8 @@ public final class AutoPickupListener implements Listener {
                 dropOwnership.remove(owned.getItemId());
             }
         }
-    }
-
-    private void scanOnlinePlayers() {
-        if (!isGloballyEnabled()) return;
-        double range = Math.max(0.5D, Math.min(64.0D,
-                plugin.getConfig().getDouble("pickup.range", 6.0D)));
-        for (Player player : Bukkit.getOnlinePlayers()) {
-            if (!canAutoPickup(player)) continue;
-            for (Entity entity : player.getNearbyEntities(range, range, range)) {
-                if (!(entity instanceof Item)) continue;
-                Item item = (Item) entity;
-                if (item.isDead() || !item.isValid() || item.getPickupDelay() > 0) continue;
-                if (dropOwnership.isOwned(item.getUniqueId())) continue;
-                depositGroundItem(player, item);
-            }
-        }
+        flushGuiRefreshes();
+        flushReadyNotifications(System.currentTimeMillis());
     }
 
     private boolean depositGroundItem(Player player, Item item) {

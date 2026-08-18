@@ -1,5 +1,5 @@
 # ============================================================
-# XySoulSpace 1.1.11
+# XySoulSpace 1.1.12
 # Paper/Spigot 1.12.2
 #
 # 当前版本默认使用本地 YML 存储，后续可切换到 XyCore/SQL 存储。
@@ -29,14 +29,12 @@ integrations:
     enabled: true
 
 pickup:
-  # 全局总开关。关闭后事件拾取、范围扫描和MythicMobs ssdrops均不会自动入库。
+  # 全局总开关。关闭后MythicMobs死亡掉落和ssdrops均不会自动入库。
   global-enabled: true
   # 新玩家首次生成灵魂空间数据时的个人开关默认值。
   default-player-enabled: true
-  # 范围扫描的三个方向半径，单位为方块；运行时最高限制为64，避免误配置拖慢主线程。
-  range: 6.0
-  # 复用一个全服扫描任务；数值越小检查越频繁，正式服建议不要低于默认值10。
-  scan-interval-ticks: 10
+  # 普通怪物掉落、玩家丢弃物和其它地面物品不会被自动检测或存入。
+
   # 怪物掉落在地面展示多久后进入击杀者灵魂仓库，运行时限制为1-200，10 tick约为0.5秒。
   # 该延迟只由一个全局轻量队列处理，不会为每件掉落创建定时任务。
   mob-drop-delay-ticks: 10

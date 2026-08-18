@@ -1,5 +1,16 @@
 # AI Changelog
 
+## 1.1.12
+
+- Restricted automatic storage delivery to final drops from MythicMobs `MythicMobDeathEvent` and configured `ssdrops`.
+- Removed ordinary Bukkit death matching, `ItemSpawnEvent` correlation and all nearby-player ground-item scanning.
+- Leaves ordinary mob drops, player-thrown items, naturally spawned items and every other unowned ground entity to vanilla or other plugins.
+- Makes `PlayerPickupItemEvent` return immediately unless the Item entity has an MM ownership record.
+- Preserved the owned-drop delay, original-killer protection, bounded per-tick queue, notification coalescing and full ItemStack/NBT delivery.
+- Restores or physically drops any MM event stack that cannot enter the ownership path, preventing silent item loss.
+- Removed `pickup.range` and `pickup.scan-interval-ticks` from the default configuration; legacy keys are ignored.
+- Updated release metadata and user/AI documentation to 1.1.12.
+
 ## 1.1.11
 
 - Fixed player-facing withdrawal messages showing a namespaced XyItems ID even when the ItemStack has an actual custom display name.
