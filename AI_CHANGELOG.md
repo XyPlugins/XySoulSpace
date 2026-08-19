@@ -1,5 +1,13 @@
 # AI Changelog
 
+## 1.1.13
+
+- Fixed duplicate delivery when one player pickup dispatches both Bukkit pickup event variants on 1.12.2.
+- Routed `EntityPickupItemEvent` and `PlayerPickupItemEvent` through one ownership/deposit path.
+- Added a bounded 40-tick consumed-entity claim to cancel the second event after a successful deposit.
+- Kept automatic pickup MythicMobs-only and event-driven; no nearby ground scan was reintroduced.
+- Updated release metadata and user/AI documentation to 1.1.13.
+
 ## 1.1.12
 
 - Restricted automatic storage delivery to final drops from MythicMobs `MythicMobDeathEvent` and configured `ssdrops`.

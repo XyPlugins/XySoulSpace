@@ -1,10 +1,10 @@
-# XySoulSpace 1.1.12
+# XySoulSpace 1.1.13
 
 XySoulSpace 是 XY 系列的灵魂仓库插件，面向 `Paper/Spigot 1.12.2` RPG 服务器。
 
 它由旧版 SoulSpace 重构而来，统一改为 `org.xyplugin.xysoulspace` 包名和 `/xyss` 指令入口，并为后续 `XyForge`、强化、兑换、活动等 XY 系列插件预留 API 与事件。
 
-当前 1.1.12 版本默认使用本地 YML 存储，不要求 XyCore 开启 SQL 数据库。XyForgeCrafting读取材料时建议服务器同时安装XyCore 0.3.12或更高兼容版本。
+当前 1.1.13 版本默认使用本地 YML 存储，不要求 XyCore 开启 SQL 数据库。XyForgeCrafting读取材料时建议服务器同时安装XyCore 0.3.12或更高兼容版本。
 
 ## 核心功能
 
@@ -21,7 +21,7 @@ XySoulSpace 是 XY 系列的灵魂仓库插件，面向 `Paper/Spigot 1.12.2` RP
 
 ## 安装
 
-1. 将 `XySoulSpace-1.1.12.jar` 放入服务器 `plugins` 文件夹。
+1. 将 `XySoulSpace-1.1.13.jar` 放入服务器 `plugins` 文件夹。
 2. 重启服务器生成 `plugins/XySoulSpace/config.yml` 和 `shop.yml`。
 3. 给玩家发放权限：
 
@@ -128,7 +128,7 @@ gui:
 
 执行 `/xyss reload` 会重新读取配置、物品库与商店，刷新XyCore桥接，重新缓存 MythicMobs `ssdrops` 规则，并按新的掉落延迟、每tick处理上限和自动保存间隔重启对应任务。已有玩家的个人开关保存在其灵魂空间YML中，不会因重载被覆盖。
 
-从旧版本升级时可以继续使用原 `config.yml`，缺少 `mob-drop-delay-ticks` 和 `max-owned-pickups-per-tick` 时会在内存中分别使用10和32；Bukkit不会自动把缺失键写回旧文件，需要自定义时手动加入。旧配置中的 `pickup.range` 与 `pickup.scan-interval-ticks` 从1.1.12起会被忽略，可以安全删除。执行 `/xyss reload` 后，新数值对之后产生或到期的掉落生效。旧的 `integrations.mythicmobs.pickup-message`、`pickup.message-enabled` 和 `pickup.message` 已不再读取；需要自定义统一提示时，请改用 `pickup.notification-*`。
+从旧版本升级时可以继续使用原 `config.yml`，缺少 `mob-drop-delay-ticks` 和 `max-owned-pickups-per-tick` 时会在内存中分别使用10和32；Bukkit不会自动把缺失键写回旧文件，需要自定义时手动加入。旧配置中的 `pickup.range` 与 `pickup.scan-interval-ticks` 从1.1.12起会被忽略，可以安全删除。1.1.13修复双拾取事件造成的重复入库，执行 `/xyss reload` 后新逻辑生效；若旧版本插件当前已停止或替换了JAR，请重启服务器。旧的 `integrations.mythicmobs.pickup-message`、`pickup.message-enabled` 和 `pickup.message` 已不再读取；需要自定义统一提示时，请改用 `pickup.notification-*`。
 
 ## 物品匹配规则
 
@@ -331,6 +331,12 @@ XySoulSpace 是可独立使用的插件，`plugin.yml` 中的 XyCore 只是软�
 
 ## 版本记录
 
+### 1.1.13
+
+- 修复同一掉落同时进入玩家背包和灵魂空间的问题。
+- 同时处理两种 Bukkit 玩家拾取事件，并对已消费掉落实体进行短期防重。
+- 保持只接管 MythicMobs 死亡掉落与 `ssdrops`，不恢复地面扫描。
+
 ### 1.1.12
 
 - 自动拾取改为只接管 MythicMobs `MythicMobDeathEvent` 的最终掉落清单与 `ssdrops`。
@@ -453,5 +459,5 @@ gradlew.bat clean build
 输出：
 
 ```text
-build/libs/XySoulSpace-1.1.12.jar
+build/libs/XySoulSpace-1.1.13.jar
 ```

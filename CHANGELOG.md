@@ -1,5 +1,13 @@
 # XySoulSpace 更新说明
 
+## 1.1.13 - 2026-08-19
+
+- 修复 Paper/Spigot 1.12.2 同一玩家拾取可能同时触发两种 Bukkit 拾取事件，导致同一个MM掉落同时进入背包和灵魂空间的问题。
+- `EntityPickupItemEvent` 与 `PlayerPickupItemEvent` 现在共用同一套击杀归属、权限和入库逻辑；无归属的普通地面物品仍完全交给原版处理。
+- 为已成功入库的掉落实体增加40 tick短期消费标记，第二个重复事件会被取消，避免重复入库和重复删除竞态。
+- 不恢复附近地面扫描，不新增逐物品任务；仍只处理 MythicMobs死亡掉落和配置的 `ssdrops`。
+- 版本号更新为 `1.1.13`，同步更新默认配置、README、更新说明和AI记录。
+
 ## 1.1.12 - 2026-08-19
 
 - 自动拾取现在仅处理 MythicMobs `MythicMobDeathEvent` 提供的最终掉落清单与既有 `ssdrops`。

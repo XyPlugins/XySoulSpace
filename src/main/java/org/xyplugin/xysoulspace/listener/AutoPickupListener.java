@@ -30,11 +30,17 @@ import java.util.UUID;
 public final class AutoPickupListener implements Listener {
     private static final int MAX_PENDING_ITEM_TYPES = 32;
     private static final long MAX_OWNER_PROTECTION_TICKS = 200L;
+    private static final long CONSUMED_DROP_RETENTION_TICKS = 40L;
     private final XySoulSpacePlugin plugin;
     private final SoulSpaceService service;
     private final DropOwnershipTracker<Item> dropOwnership = new DropOwnershipTracker<>();
     private final Map<UUID, LinkedHashMap<String, PendingNotification>> pendingNotifications = new HashMap<>();
     private final Set<UUID> pendingGuiRefreshes = new HashSet<>();
+    /**
+     * Paper 1.12.2 may dispatch both pickup event variants for one player pickup.
+     * Keep a short-lived claim so the second event cannot deliver the same entity again.
+     */
+    private final Map<UUID, Long> consumedDrops = new HashMap<>();
     private int ownedDropTaskId = -1;
     private long pickupClockTick;
     private long mobDropDelayTicks = 10L;
@@ -67,6 +73,7 @@ public final class AutoPickupListener implements Listener {
         }
         pendingNotifications.clear();
         pendingGuiRefreshes.clear();
+        consumedDrops.clear();
     }
 
     private void cancelTasks() {
@@ -90,7 +97,12 @@ public final class AutoPickupListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onEntityPickup(EntityPickupItemEvent event) {
-        if (event.getEntity() instanceof Player) return;
+        if (event.getEntity() instanceof Player) {
+            if (handlePlayerPickup((Player) event.getEntity(), event.getItem())) {
+                event.setCancelled(true);
+            }
+            return;
+        }
         if (dropOwnership.isOwned(event.getItem().getUniqueId())) event.setCancelled(true);
     }
 
@@ -101,23 +113,24 @@ public final class AutoPickupListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPickup(PlayerPickupItemEvent event) {
-        Player player = event.getPlayer();
-        Item item = event.getItem();
-        DropOwnershipTracker.OwnedDrop<Item> owned = dropOwnership.get(item.getUniqueId());
-        if (owned == null) return;
+        if (handlePlayerPickup(event.getPlayer(), event.getItem())) event.setCancelled(true);
+    }
+
+    private boolean handlePlayerPickup(Player player, Item item) {
+        if (player == null || item == null) return false;
+        UUID itemId = item.getUniqueId();
+        if (consumedDrops.containsKey(itemId)) return true;
+
+        DropOwnershipTracker.OwnedDrop<Item> owned = dropOwnership.get(itemId);
+        if (owned == null) return false;
         if (!owned.getOwnerId().equals(player.getUniqueId())) {
             Player owner = Bukkit.getPlayer(owned.getOwnerId());
-            if (owner != null && canAutoPickup(owner)) {
-                event.setCancelled(true);
-                return;
-            }
-            dropOwnership.remove(item.getUniqueId());
-            return;
+            if (owner != null && canAutoPickup(owner)) return true;
+            dropOwnership.remove(itemId);
+            return false;
         }
-        if (!canAutoPickup(player)) return;
-        if (depositGroundItem(player, item)) {
-            event.setCancelled(true);
-        }
+        if (!canAutoPickup(player)) return false;
+        return depositGroundItem(player, item);
     }
 
     public boolean isGloballyEnabled() {
@@ -188,6 +201,7 @@ public final class AutoPickupListener implements Listener {
 
     private void tickOwnedDrops() {
         pickupClockTick++;
+        pruneConsumedDrops();
         DropOwnershipTracker.OwnedDrop<Item> owned;
         int remainingBudget = maxOwnedPickupsPerTick();
         while (remainingBudget-- > 0
@@ -221,16 +235,29 @@ public final class AutoPickupListener implements Listener {
 
     private boolean depositGroundItem(Player player, Item item) {
         if (!canAutoPickup(player) || item == null || item.isDead() || !item.isValid()) return false;
-        DropOwnershipTracker.OwnedDrop<Item> owned = dropOwnership.get(item.getUniqueId());
+        UUID itemId = item.getUniqueId();
+        if (consumedDrops.containsKey(itemId)) return false;
+        DropOwnershipTracker.OwnedDrop<Item> owned = dropOwnership.get(itemId);
         if (owned != null && !owned.getOwnerId().equals(player.getUniqueId())) return false;
         ItemStack stack = item.getItemStack();
         if (!validStack(stack)) return false;
         ItemStack stored = stack.clone();
         if (!service.deposit(player, stored, "pickup", false)) return false;
-        dropOwnership.remove(item.getUniqueId());
+        consumedDrops.put(itemId, pickupClockTick);
+        dropOwnership.remove(itemId);
         item.remove();
         afterSuccessfulDeposit(player, stored);
         return true;
+    }
+
+    private void pruneConsumedDrops() {
+        if (consumedDrops.isEmpty()) return;
+        long expireBefore = pickupClockTick - CONSUMED_DROP_RETENTION_TICKS;
+        Iterator<Map.Entry<UUID, Long>> entries = consumedDrops.entrySet().iterator();
+        while (entries.hasNext()) {
+            Long consumedAt = entries.next().getValue();
+            if (consumedAt == null || consumedAt < expireBefore) entries.remove();
+        }
     }
 
     private void afterSuccessfulDeposit(Player player, ItemStack stack) {

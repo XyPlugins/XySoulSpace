@@ -1,5 +1,27 @@
 # AI 使用记录
 
+## 1.1.13
+
+本次修改根据服主实测的“开启自动拾取后同一掉落同时进入背包和灵魂空间”问题完成。
+
+排查结论：
+
+- Paper/Spigot 1.12.2 可能为同一次玩家拾取派发 `EntityPickupItemEvent` 和 `PlayerPickupItemEvent` 两套事件。
+- 旧实现只处理 `PlayerPickupItemEvent`，并在 `EntityPickupItemEvent` 中直接跳过玩家，导致其中一条路径仍可执行原版背包拾取。
+- XyBattleHud 的普通拾取显示与 XySoulSpace 存入事件显示叠加后，会出现截图中的两条相同物品提示。
+
+实现边界：
+
+- 两种玩家拾取事件现在共用同一个处理入口。
+- 只有 XySoulSpace 自己登记的 MythicMobs击杀归属实体才会被拦截和入库；普通地面物品不读取、不扫描、不接管。
+- 成功入库后记录掉落实体 UUID 40 tick，第二个重复事件直接取消，保证单个实体只完成一次入库。
+- 失败入库时不写入消费标记，保留原版拾取机会；没有新增常驻扫描任务或逐物品调度器。
+
+验证记录：
+
+- `gradlew.bat clean test build --no-daemon` 已通过，失败0、错误0。
+- 产物为 `XySoulSpace-1.1.13.jar`，目标仍为Java 8与Paper/Spigot 1.12.2。
+
 ## 1.1.12
 
 本次修改由AI根据服主确认的“自动拾取只处理MM怪物死亡掉落，其它地面物品不检测”边界辅助完成。
